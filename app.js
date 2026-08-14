@@ -251,6 +251,71 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       return button;
     }
 
+    function getWizardRecTargetOptions() {
+      if (wizardState.mode === "交換完了") {
+        return ["内部USB"];
+      }
+      return ["騒音計", "振動計"];
+    }
+
+    function formatWizardLocalDate(date) {
+      const value = date || new Date();
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, "0");
+      const day = String(value.getDate()).padStart(2, "0");
+      return year + "-" + month + "-" + day;
+    }
+
+    function getWizardRecDateLabel() {
+      return wizardState.mode === "交換完了"
+        ? "交換実施日"
+        : "校正実施日";
+    }
+
+    function renderWizardRecTargetButtons() {
+      const container = document.getElementById("recTargetButtons");
+      container.replaceChildren();
+
+      getWizardRecTargetOptions().forEach(function(target) {
+        container.appendChild(
+          createChoiceButton({
+            label:target,
+            value:target,
+            kind:"special",
+            onClick:function() {
+              selectRecTarget(target);
+            }
+          })
+        );
+      });
+    }
+
+    function validateWizardRecSettings() {
+      if (!WIZARD_REC_MODES.includes(wizardState.mode)) return true;
+
+      if (!wizardState.recTarget) {
+        alert("REC対象を選んでください");
+        return false;
+      }
+
+      if (REC_DATE_REQUIRED_MODES.includes(wizardState.mode)) {
+        const dateValue = String(
+          wizardState.recDate ||
+          document.getElementById("wizardRecDate").value ||
+          ""
+        ).trim();
+
+        if (!dateValue) {
+          alert(getWizardRecDateLabel() + "を入力してください");
+          return false;
+        }
+
+        wizardState.recDate = dateValue;
+      }
+
+      return true;
+    }
+
     function renderButtons() {
       const modeButtons =
         document.getElementById(
@@ -313,26 +378,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         }
       );
 
-      const recTargetButtons =
-        document.getElementById(
-          "recTargetButtons"
-        );
-
-      REC_TARGET_OPTIONS.forEach(
-        function(target) {
-          recTargetButtons.appendChild(
-            createChoiceButton({
-              label:target,
-              value:target,
-              kind:"special",
-
-              onClick:function() {
-                selectRecTarget(target);
-              }
-            })
-          );
-        }
-      );
+      renderWizardRecTargetButtons();
     }
 
     function showStep(stepName) {
@@ -743,85 +789,57 @@ function changePreviousSettings() {
       wizardState.recTarget = "";
       wizardState.recDate = "";
 
-      document.getElementById(
-        "wizardRecDate"
-      ).value = "";
+      renderWizardRecTargetButtons();
 
-      document.getElementById(
-        "wizardRecDateBox"
-      ).classList.add(
-        "hidden"
-      );
+      const dateInput = document.getElementById("wizardRecDate");
+      const dateBox = document.getElementById("wizardRecDateBox");
+      const dateLabel = document.getElementById("wizardRecDateLabel");
+
+      if (REC_DATE_REQUIRED_MODES.includes(wizardState.mode)) {
+        const today = formatWizardLocalDate(new Date());
+        wizardState.recDate = today;
+        dateInput.value = today;
+        dateLabel.innerText = getWizardRecDateLabel();
+        dateBox.classList.remove("hidden");
+      } else {
+        dateInput.value = "";
+        dateBox.classList.add("hidden");
+      }
     }
 
     function selectRecTarget(target) {
-      wizardState.recTarget =
-        target;
+      if (!getWizardRecTargetOptions().includes(target)) {
+        alert("この作業区分では選択できないREC対象です");
+        return;
+      }
 
-      if (
-        REC_DATE_REQUIRED_MODES.includes(
-          wizardState.mode
-        )
-      ) {
-        const dateBox =
-          document.getElementById(
-            "wizardRecDateBox"
-          );
+      wizardState.recTarget = target;
 
-        const dateLabel =
-          document.getElementById(
-            "wizardRecDateLabel"
-          );
+      if (REC_DATE_REQUIRED_MODES.includes(wizardState.mode)) {
+        const dateBox = document.getElementById("wizardRecDateBox");
+        const dateLabel = document.getElementById("wizardRecDateLabel");
+        const dateInput = document.getElementById("wizardRecDate");
 
-        dateLabel.innerText =
-          wizardState.mode ===
-          "交換完了"
-            ? "交換実施日"
-            : "校正実施日";
+        dateLabel.innerText = getWizardRecDateLabel();
+        dateBox.classList.remove("hidden");
 
-        dateBox.classList.remove(
-          "hidden"
-        );
-
-        document.getElementById(
-          "wizardRecDate"
-        ).focus();
-
+        if (!dateInput.value) {
+          dateInput.value = formatWizardLocalDate(new Date());
+        }
+        wizardState.recDate = dateInput.value;
+        dateInput.focus();
         return;
       }
 
       wizardState.recDate = "";
-
       finishWizard();
     }
 
     function confirmRecSettings() {
-      const dateValue =
-        document.getElementById(
-          "wizardRecDate"
-        ).value;
-
-      if (!wizardState.recTarget) {
-        alert(
-          "REC対象を選んでください"
-        );
-        return;
-      }
-
-      if (
-        REC_DATE_REQUIRED_MODES.includes(
-          wizardState.mode
-        ) &&
-        !dateValue
-      ) {
-        alert(
-          "実施日を入力してください"
-        );
-        return;
-      }
-
       wizardState.recDate =
-        dateValue;
+        document.getElementById("wizardRecDate").value;
+
+      if (!validateWizardRecSettings()) return;
 
       finishWizard();
     }
@@ -2732,7 +2750,7 @@ function changePreviousSettings() {
         const context = wizardPostSendContext;
         const results = await Promise.all(context.records.map(async function(record, index) {
           const entry = context.entries[index] || {};
-          const response = await fetch(GAS_URL, {
+          const response = await fetchWithRetry(GAS_URL, {
             method:"POST", headers:{"Content-Type":"text/plain"},
             body:JSON.stringify({
               action:"addMemo", kanriNo:record.qr,
@@ -2742,7 +2760,16 @@ function changePreviousSettings() {
               memo:memo, user:record.user || wizardState.user
             })
           });
-          const result = JSON.parse(await response.text());
+          const text = await response.text();
+          let result;
+          try {
+            result = JSON.parse(text);
+          } catch (parseError) {
+            throw new Error(
+              (record.qr || "不明") +
+              "：追記保存結果を読み取れませんでした"
+            );
+          }
           if (!result.ok) throw new Error((record.qr || "不明") + "：" + (result.message || "追記保存失敗"));
           return result;
         }));
@@ -2782,6 +2809,10 @@ function changePreviousSettings() {
 
       if (invalidQuantity) {
         alert("数量が未入力の品目があります");
+        return;
+      }
+
+      if (!validateWizardRecSettings()) {
         return;
       }
 
