@@ -2036,6 +2036,11 @@ function changePreviousSettings() {
         "wizardSendStatus isVisible isSending";
 
       try {
+        /*
+         * 取消POSTは自動再送しない。
+         * サーバー側で取消済みなのに応答だけ途切れた場合、
+         * 同じ取消を重ねて送らないため。
+         */
         const response = await fetch(GAS_URL, {
           method:"POST",
           headers:{"Content-Type":"text/plain"},
@@ -2045,8 +2050,28 @@ function changePreviousSettings() {
             sentAt:lastSuccessfulSend.sentAt
           })
         });
-        const result = JSON.parse(await response.text());
-        if (!result.ok) throw new Error(result.error || result.message || "取消失敗");
+        const responseText = await response.text();
+        let result;
+
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          const error = new Error(
+            "取消結果を確認できませんでした。スプレッドシートを確認してください。"
+          );
+          error.cancelResultUnknown = true;
+          throw error;
+        }
+
+        if (!response.ok || !result.ok) {
+          const error = new Error(
+            result.error ||
+            result.message ||
+            ("HTTP " + response.status + "：取消失敗")
+          );
+          error.cancelResultKnown = true;
+          throw error;
+        }
 
         (lastSuccessfulSend.snapshots || []).forEach(restoreLocalState);
         clearRecentSuccessfulWorkRecords(
@@ -2079,10 +2104,17 @@ function changePreviousSettings() {
         );
         void refreshInventoryInBackground();
       } catch (error) {
-        setWizardSendStatus(
-          "取消失敗\n" + (error.message || String(error)),
-          "isError"
-        );
+        const sendId = String(lastSuccessfulSend?.sendId || "");
+        const message = error.cancelResultKnown
+          ? "取消失敗\n" + (error.message || String(error))
+          : (
+              "取消結果不明\n" +
+              (error.message || "通信が完了したか確認できませんでした。") +
+              "\n取消ボタンを連打せず、スプレッドシートを確認してください。" +
+              (sendId ? "\n送信ID：" + sendId : "")
+            );
+
+        setWizardSendStatus(message, "isError");
       } finally {
         stopAnimatedDots("wizardSendStatus");
         wizardSendBusy = false;
