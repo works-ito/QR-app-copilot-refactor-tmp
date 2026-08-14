@@ -2232,18 +2232,54 @@ function changePreviousSettings() {
       return canvas.toDataURL("image/jpeg", 0.85);
     }
 
+    async function fetchWithRetry(url, options, retryCount = 1, retryDelayMs = 1200) {
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retryCount; attempt++) {
+        try {
+          const response = await fetch(url, options);
+
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+
+          return response;
+        } catch (error) {
+          lastError = error;
+
+          if (attempt >= retryCount) break;
+
+          console.warn("通信失敗。再試行します。", error);
+          await new Promise(resolve => setTimeout(resolve, retryDelayMs));
+        }
+      }
+
+      throw lastError;
+    }
+
     async function analyzeWizardSlipPhoto(file, photoType) {
       startAnimatedDots("wizardPhotoPreview", "伝票情報を確認しています");
       try {
         const photoBase64 = await makeWizardSlipAnalysisImage(file);
-        const response = await fetch(GAS_URL, {
+        const response = await fetchWithRetry(GAS_URL, {
           method:"POST", headers:{"Content-Type":"text/plain"},
           body:JSON.stringify({
             action:"analyzeSlipPhoto", photoBase64:photoBase64,
             photoType:photoType, requestedFields:["customerName", "siteName"]
           })
         });
-        const result = JSON.parse(await response.text());
+
+        const text = await response.text();
+        let result;
+
+        try {
+          result = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(
+            "伝票解析結果を読み取れませんでした\n" +
+            text.slice(0, 200)
+          );
+        }
         if (!result.ok) throw new Error(result.message || "伝票情報を取得できませんでした");
         const customerName = sanitizeWizardPhotoTitlePart(result.customerName);
         const siteName = sanitizeWizardPhotoTitlePart(result.siteName);
