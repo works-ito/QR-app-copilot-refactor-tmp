@@ -1071,3 +1071,15 @@
 #wizardConfirmReturnMemoButton {
   margin-top:10px;
 }
+
+.irregularNoteEmphasis {
+  margin:5px 0 8px;
+  padding:8px 10px;
+  border-left:4px solid var(--red);
+  border-radius:6px;
+  background:#fff1f1;
+  color:#b42318;
+  font-size:14px;
+  font-weight:800;
+  line-height:1.45;
+}
