@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>QR在庫管理｜ver.3</title>
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=3">
+  <link rel="stylesheet" href="./styles.css?v=9">
 </head>
 <body>
 <main class="app">
@@ -459,6 +459,54 @@
           読取をすべてリセット
         </button>
 
+        <div
+          id="wizardReturnMemoArea"
+          class="wizardReturnMemoArea"
+          hidden
+        >
+          <h3>返却案件の追記</h3>
+          <p>今回の返却全体に追記する内容を選んでください。</p>
+
+          <label class="wizardReturnMemoOption">
+            <input
+              type="radio"
+              name="wizardReturnMemoType"
+              value="なし"
+            >
+            <span>追記なし</span>
+          </label>
+
+          <label class="wizardReturnMemoOption">
+            <input
+              type="radio"
+              name="wizardReturnMemoType"
+              value="あり"
+            >
+            <span>追記あり</span>
+          </label>
+
+          <textarea
+            id="wizardReturnMemoText"
+            placeholder="返却元・案件情報・注意事項等"
+            hidden
+          ></textarea>
+
+          <button
+            id="wizardConfirmReturnMemoButton"
+            type="button"
+          >
+            この内容で返却を送信
+          </button>
+
+          <button
+            id="wizardCancelReturnMemoButton"
+            class="secondaryButton"
+            type="button"
+          >
+            戻る
+          </button>
+        </div>
+
         <button
           id="wizardSendBatchButton"
           class="wizardSendButton"
@@ -589,6 +637,6 @@
   </section>
 
   <div id="inventoryRuntime" hidden></div>
-  <script src="./app.js?v=8"></script>
+  <script src="./app.js?v=9"></script>
 </body>
 </html>
