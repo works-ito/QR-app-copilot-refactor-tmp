@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>QR在庫管理｜ver.3</title>
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=9">
+  <link rel="stylesheet" href="./styles.css?v=11">
 </head>
 <body>
 <main class="app">
@@ -590,7 +590,10 @@
         <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票なし">伝票なし</label>
       </div>
       <div id="wizardIrregularSlipGuide" class="wizardPostSummary">1枚目に伝票写真を追加してください。</div>
-      <label for="wizardIrregularNote">状況・理由・機械の特徴</label>
+      <label for="wizardIrregularNote">状況・理由</label>
+      <div class="irregularNoteEmphasis">
+        欠油・未入庫・破損状況などを必ず入力
+      </div>
       <textarea id="wizardIrregularNote" placeholder="QR破損・汚れ・管理番号が読めない・機械の特徴などを必ず入力"></textarea>
       <div id="wizardIrregularQuantityBox" hidden>
         <label for="wizardIrregularQuantity">数量</label>
