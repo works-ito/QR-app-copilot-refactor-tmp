@@ -1336,7 +1336,9 @@ function changePreviousSettings() {
           wizardState.mode
         )
           ? "REC読取分を送信"
-          : "読取分をまとめて送信";
+          : wizardState.mode === "返却"
+            ? "返却内容を確認"
+            : "読取分をまとめて送信";
     }
 
     function setTemporaryScannerStatus(message, duration) {
