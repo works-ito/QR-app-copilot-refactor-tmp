@@ -49,6 +49,9 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     const LAST_SUCCESSFUL_SEND_STORAGE_KEY =
       "qrInventoryWizardLastSuccessfulSendV1";
     const CANCEL_SEND_VALID_MS = 5 * 60 * 1000;
+    const RECENT_WORK_STORAGE_KEY =
+      "qrInventoryRecentSuccessfulWorks";
+    const RECENT_WORK_BLOCK_MS = 5 * 60 * 1000;
     const animatedDotsTimers = new Map();
     let wizardPostSendContext = null;
     let wizardSelectedPhotos = [];
@@ -1644,6 +1647,154 @@ function changePreviousSettings() {
       return states[mode] || "";
     }
 
+    function validateStateTransition(currentState, mode) {
+      const state = String(currentState || "").trim();
+      const action = String(mode || "").trim();
+
+      if (!state) {
+        return {
+          ok:true,
+          warning:true,
+          message:"現在状態を取得できませんでした"
+        };
+      }
+
+      if (action === "出庫") {
+        if (state === "出庫" || state === "出庫中") {
+          return {
+            ok:false,
+            warning:false,
+            message:
+              "この機械はすでに出庫中です。\n" +
+              "二重出庫の可能性があるため登録できません。"
+          };
+        }
+        return {ok:true, warning:false, message:""};
+      }
+
+      if (action === "返却" || action === "出庫取消") {
+        if (state !== "出庫" && state !== "出庫中") {
+          return {
+            ok:false,
+            warning:false,
+            message:
+              "この機械は出庫中ではありません。\n" +
+              "現在状態が「" + state + "」のため" +
+              action + "登録できません。"
+          };
+        }
+        return {ok:true, warning:false, message:""};
+      }
+
+      return {ok:true, warning:false, message:""};
+    }
+
+    function getRecentSuccessfulWorks() {
+      try {
+        const parsed = JSON.parse(
+          localStorage.getItem(RECENT_WORK_STORAGE_KEY) || "[]"
+        );
+        if (!Array.isArray(parsed)) return [];
+        const now = Date.now();
+        const active = parsed.filter(function(item) {
+          return (
+            item &&
+            now - Number(item.sentAt || 0) < RECENT_WORK_BLOCK_MS
+          );
+        });
+        localStorage.setItem(
+          RECENT_WORK_STORAGE_KEY,
+          JSON.stringify(active)
+        );
+        return active;
+      } catch (error) {
+        console.warn("直近送信記録の取得失敗", error);
+        return [];
+      }
+    }
+
+    function isRecentSuccessfulWork(qrText, mode) {
+      const qrKey = normalizeLookupKey(qrText || "");
+      const modeKey = String(mode || "").trim();
+      if (!qrKey || !modeKey) return false;
+      return getRecentSuccessfulWorks().some(function(item) {
+        return item.qrKey === qrKey && item.mode === modeKey;
+      });
+    }
+
+    function rememberRecentSuccessfulWorks(records, successfulIndexes) {
+      const source = Array.isArray(records) ? records : [];
+      const successSet = new Set(
+        Array.isArray(successfulIndexes) ? successfulIndexes : []
+      );
+      const now = Date.now();
+      let recent = getRecentSuccessfulWorks();
+      const savedKeys = [];
+
+      source.forEach(function(record, index) {
+        if (!record || !successSet.has(index)) return;
+        if (record.recordType === "quantity") return;
+
+        const qrText = String(record.qrText || record.qr || "").trim();
+        const qrKey = normalizeLookupKey(qrText);
+        const mode = String(record.mode || "").trim();
+        if (!qrKey || !mode) return;
+
+        const workKey = qrKey + "||" + mode;
+        recent = recent.filter(function(item) {
+          return item.qrKey + "||" + item.mode !== workKey;
+        });
+        recent.push({qrKey:qrKey, mode:mode, sentAt:now});
+        savedKeys.push(workKey);
+      });
+
+      try {
+        localStorage.setItem(
+          RECENT_WORK_STORAGE_KEY,
+          JSON.stringify(recent)
+        );
+      } catch (error) {
+        console.warn("直近送信記録の保存失敗", error);
+      }
+      return savedKeys;
+    }
+
+    function clearRecentSuccessfulWorkRecords(workKeys) {
+      const keys = Array.isArray(workKeys) ? workKeys : [];
+      if (!keys.length) return;
+      const keySet = new Set(keys);
+      const recent = getRecentSuccessfulWorks().filter(function(item) {
+        return !keySet.has(item.qrKey + "||" + item.mode);
+      });
+      try {
+        localStorage.setItem(
+          RECENT_WORK_STORAGE_KEY,
+          JSON.stringify(recent)
+        );
+      } catch (error) {
+        console.warn("直近送信記録の解除失敗", error);
+      }
+    }
+
+    function getSuccessfulResultIndexes(result, recordCount) {
+      const results =
+        result && Array.isArray(result.results)
+          ? result.results
+          : [];
+      const indexes = [];
+
+      results.forEach(function(item, position) {
+        if (!item || !item.ok) return;
+        const suppliedIndex = Number(item.index);
+        const index = Number.isInteger(suppliedIndex)
+          ? suppliedIndex
+          : position;
+        if (index >= 0 && index < recordCount) indexes.push(index);
+      });
+
+      return Array.from(new Set(indexes));
+    }
+
     function captureLocalState(record) {
       if (!record || record.recordType === "quantity") return null;
       const item = getLocalManagedItem(record.qr, record.managementType);
@@ -1747,9 +1898,17 @@ function changePreviousSettings() {
       renderCancelSendButton();
     }
 
-    async function refreshInventoryInBackground() {
+    async function refreshInventoryInBackground(successfulRecords) {
       try {
         await loadAppInitialData(false);
+        (Array.isArray(successfulRecords) ? successfulRecords : [])
+          .forEach(applySuccessfulLocalState);
+        if (
+          Array.isArray(successfulRecords) &&
+          successfulRecords.length
+        ) {
+          await saveInventoryCache();
+        }
       } catch (error) {
         console.warn("バックグラウンド状態更新失敗", error);
       }
@@ -1788,6 +1947,9 @@ function changePreviousSettings() {
         if (!result.ok) throw new Error(result.error || result.message || "取消失敗");
 
         (lastSuccessfulSend.snapshots || []).forEach(restoreLocalState);
+        clearRecentSuccessfulWorkRecords(
+          lastSuccessfulSend.recentWorkKeys || []
+        );
         await saveInventoryCache();
         setWizardSendStatus(
           "直前送信を取消しました ✔\n" +
@@ -2668,10 +2830,18 @@ function changePreviousSettings() {
         const resultItems = Array.isArray(result.results)
           ? result.results
           : [];
-        const successfulIndexes = resultItems
-          .filter(function(item) { return item.ok; })
-          .map(function(item) { return Number(item.index); });
+        const successfulIndexes = getSuccessfulResultIndexes(
+          result,
+          sourceEntries.length
+        );
         const successfulSet = new Set(successfulIndexes);
+        const successfulRecords = successfulIndexes
+          .map(function(index) { return sendRecords[index]; })
+          .filter(Boolean);
+        const recentWorkKeys = rememberRecentSuccessfulWorks(
+          sourceEntries,
+          successfulIndexes
+        );
         const postSendContext = successfulWizardSendContext(
           sourceEntries,
           sendRecords,
@@ -2695,7 +2865,8 @@ function changePreviousSettings() {
               .map(function(item) { return item.logId; }),
             snapshots:successfulIndexes
               .map(function(index) { return snapshots[index]; })
-              .filter(Boolean)
+              .filter(Boolean),
+            recentWorkKeys:recentWorkKeys
           });
         }
 
@@ -2725,7 +2896,7 @@ function changePreviousSettings() {
           );
 
           scannerBusy = false;
-          void refreshInventoryInBackground();
+          void refreshInventoryInBackground(successfulRecords);
           if (successfulIndexes.length > 0) {
             await beginWizardPostSendFlow(postSendContext);
           }
@@ -2746,7 +2917,7 @@ function changePreviousSettings() {
         );
 
         scannerBusy = false;
-        void refreshInventoryInBackground();
+        void refreshInventoryInBackground(successfulRecords);
         await beginWizardPostSendFlow(postSendContext);
       } catch (error) {
         const sendId =
@@ -2836,56 +3007,57 @@ function changePreviousSettings() {
         return;
       }
       /*
-       * 個体・簡易個体・RECの既知状態を読取時点で確認する。
-       * 状態なしは段階導入中のため許可し、
-       * 最終判定はGAS側でも行う。
-       * 数量管理品は在庫数管理なので、この状態判定の対象外。
+       * 個体・簡易個体・RECは、直近送信と現在状態を確認する。
+       * 数量管理品は同じ品目を続けて扱う可能性があるため、
+       * 5分ブロックと状態遷移判定の対象外。
        */
       if (details.managementType !== "quantity") {
-        const knownState =
-          details.currentState === "状態なし"
-            ? ""
-            : details.currentState;
-
         if (
-          wizardState.mode === "出庫" &&
-          knownState === "出庫中"
+          isRecentSuccessfulWork(
+            qrText,
+            wizardState.mode
+          )
         ) {
           if (navigator.vibrate) {
             navigator.vibrate([80, 60, 80]);
           }
 
           setTemporaryScannerStatus(
-            "この機械はすでに出庫中です\n二重出庫の可能性があるため登録できません",
-            1600
-          );
-
-          setTimeout(function() {
-            scannerBusy = false;
-          }, 1400);
-
-          return;
-        }
-
-        if (
-          wizardState.mode === "返却" &&
-          knownState &&
-          knownState !== "出庫中"
-        ) {
-          if (navigator.vibrate) {
-            navigator.vibrate([80, 60, 80]);
-          }
-
-          setTemporaryScannerStatus(
-            "この機械は出庫中ではないため返却登録できません\n現在状態：" +
-              knownState,
+            "この作業は5分以内に登録済みです\n" +
+            "二重登録の可能性があるため登録できません",
             1800
           );
 
           setTimeout(function() {
             scannerBusy = false;
           }, 1600);
+          return;
+        }
 
+        const knownState =
+          details.currentState === "状態なし"
+            ? ""
+            : details.currentState;
+
+        const stateCheck = validateStateTransition(
+          knownState,
+          wizardState.mode
+        );
+
+        if (!stateCheck.ok) {
+          if (navigator.vibrate) {
+            navigator.vibrate([80, 60, 80]);
+          }
+
+          setTemporaryScannerStatus(
+            stateCheck.message +
+            "\n現在状態：" + (knownState || "状態なし"),
+            1900
+          );
+
+          setTimeout(function() {
+            scannerBusy = false;
+          }, 1700);
           return;
         }
       }
