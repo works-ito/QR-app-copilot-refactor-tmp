@@ -1,0 +1,231 @@
+:root {
+  --blue:#1677ff;
+  --blue-dark:#075fc9;
+  --blue-pale:#eef6ff;
+  --green:#159447;
+  --ink:#172033;
+  --muted:#667085;
+  --line:#d9e0ea;
+  --surface:#ffffff;
+  --background:#f3f6fa;
+  --red:#d73535;
+  --shadow:0 8px 24px rgba(34,51,84,.10);
+}
+
+* { box-sizing:border-box; }
+
+html, body {
+  margin:0;
+  min-height:100%;
+  background:var(--background);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+}
+
+button {
+  font:inherit;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+
+.app {
+  width:100%;
+  max-width:430px;
+  min-height:100dvh;
+  margin:0 auto;
+  padding:max(12px,env(safe-area-inset-top)) 12px max(20px,env(safe-area-inset-bottom));
+}
+
+.app-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:48px;
+  margin-bottom:8px;
+}
+
+.brand h1 {
+  margin:0;
+  font-size:20px;
+  line-height:1.15;
+  letter-spacing:.02em;
+}
+
+.brand p {
+  margin:3px 0 0;
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.1em;
+}
+
+.version {
+  margin-left:4px;
+  color:var(--blue);
+}
+
+.header-button {
+  min-width:60px;
+  min-height:40px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  color:#4c5668;
+  font-weight:700;
+}
+
+.status-bar {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:34px;
+  margin-bottom:8px;
+  padding:7px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(255,255,255,.75);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+}
+
+.status-dot {
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#aab2c0;
+}
+
+.status-dot.is-ready { background:var(--green); }
+
+.card {
+  padding:16px 14px 14px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+}
+
+.step-heading { margin-bottom:14px; }
+
+.step-count {
+  margin:0 0 4px;
+  color:var(--blue);
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+
+.step-heading h2 {
+  margin:0;
+  font-size:21px;
+  line-height:1.3;
+}
+
+.step-guide {
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.choice-grid {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:9px;
+}
+
+.choice-button {
+  width:100%;
+  min-height:64px;
+  padding:11px 13px;
+  border:2px solid var(--line);
+  border-radius:13px;
+  background:#fff;
+  color:var(--ink);
+  text-align:left;
+  transition:border-color .15s,background .15s,transform .08s;
+}
+
+.choice-button:active { transform:scale(.99); }
+
+.choice-button.is-selected {
+  border-color:var(--blue);
+  background:var(--blue-pale);
+}
+
+.choice-title {
+  display:block;
+  font-size:17px;
+  font-weight:800;
+}
+
+.choice-note {
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.footer-actions { margin-top:14px; }
+
+.primary-button {
+  width:100%;
+  min-height:52px;
+  border:0;
+  border-radius:13px;
+  background:var(--blue);
+  color:#fff;
+  font-size:17px;
+  font-weight:800;
+  box-shadow:0 5px 14px rgba(22,119,255,.24);
+}
+
+.primary-button:disabled {
+  background:#c9d2df;
+  box-shadow:none;
+}
+
+.selection-summary {
+  margin-top:10px;
+  padding:12px 14px;
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:rgba(255,255,255,.78);
+}
+
+.selection-summary h2 {
+  margin:0 0 7px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.selection-summary dl {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:5px 10px;
+  margin:0;
+  font-size:12px;
+}
+
+.selection-summary dt {
+  color:var(--muted);
+  font-weight:700;
+}
+
+.selection-summary dd {
+  margin:0;
+  font-weight:800;
+  text-align:right;
+}
+
+@media (min-width:390px) {
+  .choice-grid.is-compact { grid-template-columns:1fr 1fr; }
+}
+
+@media (max-height:680px) {
+  .app { padding-top:8px; }
+  .card { padding-top:13px; }
+  .choice-button { min-height:58px; }
+}
