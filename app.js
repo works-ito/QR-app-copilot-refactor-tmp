@@ -2280,17 +2280,31 @@ function changePreviousSettings() {
 
     function successfulWizardSendContext(sourceEntries, sendRecords, result, indexes) {
       const resultItems = Array.isArray(result.results) ? result.results : [];
+
+      function getResultItem(index) {
+        const indexed = resultItems.find(function(row) {
+          return Number(row.index) === index;
+        });
+        return indexed || resultItems[index] || null;
+      }
+
       return {
         mode:wizardState.mode,
         modeLabel:wizardState.modeLabel,
         sendId:String(result.sendId || lastPendingSendId || ""),
         sentAt:new Date().toISOString(),
-        entries:indexes.map(function(index) { return sourceEntries[index]; }).filter(Boolean),
-        records:indexes.map(function(index) { return sendRecords[index]; }).filter(Boolean),
-        logIds:indexes.map(function(index) {
-          const item = resultItems.find(function(row) { return Number(row.index) === index; });
-          return item && item.logId ? item.logId : "";
-        }).filter(Boolean)
+        entries:indexes
+          .map(function(index) { return sourceEntries[index]; })
+          .filter(Boolean),
+        records:indexes
+          .map(function(index) { return sendRecords[index]; })
+          .filter(Boolean),
+        logIds:indexes
+          .map(function(index) {
+            const item = getResultItem(index);
+            return item && item.logId ? item.logId : "";
+          })
+          .filter(Boolean)
       };
     }
 
@@ -2580,10 +2594,22 @@ function changePreviousSettings() {
 
     function buildWizardPhotoInfo(context) {
       const first = context.records[0] || {};
-      const confirmedTitle = wizardCurrentSlipInfo ? wizardCurrentSlipInfo.confirmedTitle : "";
+      const confirmedTitle = wizardCurrentSlipInfo
+        ? wizardCurrentSlipInfo.confirmedTitle
+        : "";
+      const photoType = context.isIrregular
+        ? "irregular"
+        : context.mode === "出庫"
+          ? "shipment"
+          : "return";
+
       const info = {
         mode:context.mode,
-        ids:context.records.map(function(record) { return record.qr || record.qrText; }),
+        photoType:photoType,
+        photoCount:wizardSelectedPhotos.length,
+        ids:context.records.map(function(record) {
+          return record.qr || record.qrText;
+        }),
         user:first.user || wizardState.user,
         location:first.location || wizardState.location,
         sendId:context.sendId,
@@ -2593,55 +2619,112 @@ function changePreviousSettings() {
         saveTitleCandidate:confirmedTitle,
         confirmedTitle:confirmedTitle
       };
+
       if (context.isIrregular) {
-        info.photoType = "irregular";
-        info.irregularCaseId = context.irregularRecord.irregularCaseId;
-        info.irregularRecord = Object.assign({}, context.irregularRecord, {
-          photoCount:wizardSelectedPhotos.length
-        });
+        info.irregularCaseId =
+          context.irregularRecord.irregularCaseId;
+        info.irregularRecord = Object.assign(
+          {},
+          context.irregularRecord,
+          {photoCount:wizardSelectedPhotos.length}
+        );
         info.slipStatus = context.irregularRecord.slipStatus;
         info.photoRequired = true;
       }
+
       return info;
     }
 
     async function saveWizardPhotoNow() {
       if (wizardPostSendBusy || !wizardPendingPhotoSave) return;
+
       wizardPostSendBusy = true;
-      const button = document.getElementById("wizardConfirmPhotoTitleButton");
+      const button = document.getElementById(
+        "wizardConfirmPhotoTitleButton"
+      );
       button.disabled = true;
-      startAnimatedDots("wizardPhotoTitleCandidate", "写真を保存中");
+      startAnimatedDots(
+        "wizardPhotoTitleCandidate",
+        "写真を保存中"
+      );
+
       try {
         const pending = wizardPendingPhotoSave;
         const photoInfo = pending.photoInfo;
-        const collage = await makeWizardPhotoCollage(pending.files, photoInfo);
+        const collage = await makeWizardPhotoCollage(
+          pending.files,
+          photoInfo
+        );
+
         const action = photoInfo.photoType === "irregular"
           ? "saveIrregularRegistration"
-          : photoInfo.mode === "出庫" ? "saveShipmentPhoto" : "saveReturnPhoto";
+          : photoInfo.photoType === "shipment"
+            ? "saveShipmentPhoto"
+            : "saveReturnPhoto";
+
         const extraPayload = photoInfo.photoType === "irregular"
-          ? {record:photoInfo.irregularRecord, irregularCaseId:photoInfo.irregularCaseId}
+          ? {
+              record:photoInfo.irregularRecord,
+              irregularCaseId:photoInfo.irregularCaseId
+            }
           : {};
-        const response = await fetch(GAS_URL, {
-          method:"POST", headers:{"Content-Type":"text/plain"},
-          body:JSON.stringify({
-            action:action, photoRequestId:pending.photoRequestId,
-            photoBase64:collage, photoInfo:photoInfo,
-            slipInfo:photoInfo.slipInfo, saveTitleCandidate:photoInfo.confirmedTitle,
-            confirmedTitle:photoInfo.confirmedTitle,
-            ...extraPayload
-          })
-        });
-        const result = JSON.parse(await response.text());
-        if (!result.ok) throw new Error(result.message || "写真を保存できませんでした");
+
+        /*
+         * photoRequestIdは再試行時も同じ値を使用する。
+         * GAS側のPHOTO重複防止により、応答だけ失われた場合でも
+         * 同じ写真を二重保存しない。
+         */
+        const response = await fetchWithRetry(
+          GAS_URL,
+          {
+            method:"POST",
+            headers:{"Content-Type":"text/plain"},
+            body:JSON.stringify({
+              action:action,
+              photoRequestId:pending.photoRequestId,
+              photoBase64:collage,
+              photoInfo:photoInfo,
+              slipInfo:photoInfo.slipInfo,
+              saveTitleCandidate:photoInfo.confirmedTitle,
+              confirmedTitle:photoInfo.confirmedTitle,
+              ...extraPayload
+            })
+          }
+        );
+
+        const text = await response.text();
+        let result;
+
+        try {
+          result = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error(
+            "写真保存結果を読み取れませんでした\n" +
+            text.slice(0, 200)
+          );
+        }
+
+        if (!result.ok) {
+          throw new Error(
+            result.message || "写真を保存できませんでした"
+          );
+        }
+
         if (photoInfo.photoType === "irregular") {
           alert("イレギュラー受付を保存しました");
           await finishWizardIrregularFlow();
         } else {
           alert(photoInfo.mode + "写真を保存しました");
-          await resumeWizardContinuousScan("写真保存完了 ✔\n続けてQRを読み取れます");
+          await resumeWizardContinuousScan(
+            "写真保存完了 ✔\n続けてQRを読み取れます"
+          );
         }
       } catch (error) {
-        alert("写真保存失敗\n" + (error.message || String(error)));
+        alert(
+          "写真保存失敗\n" +
+          (error.message || String(error)) +
+          "\n\n同じ画面から再度保存できます。"
+        );
       } finally {
         stopAnimatedDots("wizardPhotoTitleCandidate");
         wizardPostSendBusy = false;
@@ -2701,25 +2784,54 @@ function changePreviousSettings() {
     }
 
     async function confirmWizardPhotoTitle() {
-      if (!wizardPendingPhotoSave) return;
-      const customerName = sanitizeWizardPhotoTitlePart(document.getElementById("wizardPhotoCustomerName").value);
-      const siteName = sanitizeWizardPhotoTitlePart(document.getElementById("wizardPhotoSiteName").value);
-      if (
-        wizardPendingPhotoSave.photoInfo.photoType === "irregular" &&
-        (!customerName || !siteName)
-      ) {
-        alert("イレギュラー受付は顧客名と現場名を入力してください");
+      if (!wizardPendingPhotoSave || !wizardCurrentSlipInfo) return;
+
+      const customerName = sanitizeWizardPhotoTitlePart(
+        document.getElementById("wizardPhotoCustomerName").value
+      );
+      const siteName = sanitizeWizardPhotoTitlePart(
+        document.getElementById("wizardPhotoSiteName").value
+      );
+      const isIrregular =
+        wizardPendingPhotoSave.photoInfo.photoType === "irregular";
+
+      if (isIrregular && !customerName) {
+        alert("顧客名を入力してください");
+        document.getElementById("wizardPhotoCustomerName").focus();
         return;
       }
+
+      if (isIrregular && !siteName) {
+        alert("現場名を入力してください");
+        document.getElementById("wizardPhotoSiteName").focus();
+        return;
+      }
+
+      const confirmedTitle = buildWizardPhotoTitle(
+        customerName,
+        siteName
+      );
+
+      if (!confirmedTitle) {
+        alert(
+          "保存タイトルがありません\n" +
+          "顧客名または現場名を入力してください"
+        );
+        document.getElementById("wizardPhotoCustomerName").focus();
+        return;
+      }
+
       wizardCurrentSlipInfo.customerName = customerName;
       wizardCurrentSlipInfo.siteName = siteName;
       wizardCurrentSlipInfo.siteNameEdited = true;
-      wizardCurrentSlipInfo.confirmedTitle = buildWizardPhotoTitle(customerName, siteName);
+      wizardCurrentSlipInfo.confirmedTitle = confirmedTitle;
+
       Object.assign(wizardPendingPhotoSave.photoInfo, {
         slipInfo:wizardCurrentSlipInfo,
-        saveTitleCandidate:wizardCurrentSlipInfo.confirmedTitle,
-        confirmedTitle:wizardCurrentSlipInfo.confirmedTitle
+        saveTitleCandidate:confirmedTitle,
+        confirmedTitle:confirmedTitle
       });
+
       await saveWizardPhotoNow();
     }
 
