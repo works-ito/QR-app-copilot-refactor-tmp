@@ -52,6 +52,14 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     const RECENT_WORK_STORAGE_KEY =
       "qrInventoryRecentSuccessfulWorks";
     const RECENT_WORK_BLOCK_MS = 5 * 60 * 1000;
+    const DATA_REFRESH_MINUTES = 15;
+    const AUTO_RELOAD_MINUTES = 30;
+    const APP_VERSION_CHECK_MS = 10 * 1000;
+    let inventoryRefreshTimer = null;
+    let appVersionCheckTimer = null;
+    let currentAppVersion = null;
+    let pendingAutoReload = false;
+    let lastHiddenTime = null;
     const animatedDotsTimers = new Map();
     let wizardPostSendContext = null;
     let wizardSelectedPhotos = [];
@@ -4766,7 +4774,144 @@ document.getElementById("wizardCancelIrregularButton").addEventListener("click",
   }
 });
 
+function canRefreshInventoryAutomatically() {
+  return (
+    !appInitialDataLoading &&
+    !wizardSendBusy &&
+    !wizardPostSendBusy &&
+    !scannerBusy &&
+    scannedEntries.length === 0
+  );
+}
+
+function isAutomaticReloadSafe() {
+  const postSendArea = document.getElementById("wizardPostSendArea");
+
+  return (
+    !wizardSendBusy &&
+    !wizardPostSendBusy &&
+    !scannerBusy &&
+    scannedEntries.length === 0 &&
+    wizardSelectedPhotos.length === 0 &&
+    !wizardPendingPhotoSave &&
+    !(postSendArea && postSendArea.hidden === false)
+  );
+}
+
+function reloadAppWithCacheBust() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("v", String(Date.now()));
+  window.location.replace(url.toString());
+}
+
+async function runScheduledInventoryRefresh() {
+  if (!canRefreshInventoryAutomatically()) {
+    console.log("在庫データ定期更新を保留しました");
+    return false;
+  }
+
+  console.log("在庫データ定期更新開始");
+
+  const success = await loadAppInitialData(false);
+
+  console.log(
+    success
+      ? "在庫データ定期更新完了"
+      : "在庫データ定期更新失敗",
+    new Date().toLocaleString()
+  );
+
+  return success;
+}
+
+function startInventoryRefreshTimer() {
+  if (inventoryRefreshTimer) {
+    clearInterval(inventoryRefreshTimer);
+  }
+
+  inventoryRefreshTimer = setInterval(
+    runScheduledInventoryRefresh,
+    DATA_REFRESH_MINUTES * 60 * 1000
+  );
+}
+
+async function checkAppVersion() {
+  try {
+    const response = await fetch(
+      "./version.json?t=" + Date.now(),
+      {cache:"no-store"}
+    );
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+    const version = String(data.version || "").trim();
+
+    if (!version) {
+      throw new Error("versionが空です");
+    }
+
+    if (currentAppVersion === null) {
+      currentAppVersion = version;
+      return;
+    }
+
+    if (version !== currentAppVersion) {
+      currentAppVersion = version;
+      pendingAutoReload = true;
+    }
+
+    if (pendingAutoReload && isAutomaticReloadSafe()) {
+      pendingAutoReload = false;
+      reloadAppWithCacheBust();
+    }
+  } catch (error) {
+    console.warn("アプリ更新確認失敗", error);
+  }
+}
+
+function startAppVersionCheckTimer() {
+  if (appVersionCheckTimer) {
+    clearInterval(appVersionCheckTimer);
+  }
+
+  void checkAppVersion();
+  appVersionCheckTimer = setInterval(
+    checkAppVersion,
+    APP_VERSION_CHECK_MS
+  );
+}
+
+document.addEventListener("visibilitychange", function() {
+  if (document.visibilityState === "hidden") {
+    lastHiddenTime = Date.now();
+    return;
+  }
+
+  if (document.visibilityState !== "visible" || !lastHiddenTime) {
+    return;
+  }
+
+  const elapsed = Date.now() - lastHiddenTime;
+  lastHiddenTime = null;
+
+  if (elapsed < AUTO_RELOAD_MINUTES * 60 * 1000) {
+    return;
+  }
+
+  if (isAutomaticReloadSafe()) {
+    reloadAppWithCacheBust();
+    return;
+  }
+
+  pendingAutoReload = true;
+});
+
 renderButtons();
 resetWizard();
 restoreLastSuccessfulSend();
 initializeInventoryDataFoundation();
+startInventoryRefreshTimer();
+startAppVersionCheckTimer();
