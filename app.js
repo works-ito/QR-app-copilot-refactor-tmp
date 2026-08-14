@@ -58,6 +58,9 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let wizardCurrentSlipInfo = null;
     let wizardPendingPhotoSave = null;
     let wizardPostSendBusy = false;
+    let wizardReturnMemoConfirmed = false;
+    let wizardReturnMemo = "";
+    let wizardReturnCaseId = "";
     let wizardIrregularRecord = null;
     let wizardIrregularDetected = null;
 
@@ -1583,6 +1586,85 @@ function changePreviousSettings() {
       }, 500);
     }
 
+    function createWizardReturnCaseId() {
+      return (
+        "RET-" +
+        new Date().toISOString()
+          .replace(/[-:.TZ]/g, "")
+          .slice(0, 14)
+      );
+    }
+
+    function resetWizardReturnMemoState(hideArea) {
+      wizardReturnMemoConfirmed = false;
+      wizardReturnMemo = "";
+      wizardReturnCaseId = "";
+
+      const area = document.getElementById("wizardReturnMemoArea");
+      const text = document.getElementById("wizardReturnMemoText");
+
+      document
+        .querySelectorAll('input[name="wizardReturnMemoType"]')
+        .forEach(function(radio) {
+          radio.checked = false;
+        });
+
+      if (text) {
+        text.value = "";
+        text.hidden = true;
+      }
+
+      if (area && hideArea !== false) {
+        area.hidden = true;
+      }
+    }
+
+    function openWizardReturnMemoArea() {
+      resetWizardReturnMemoState(false);
+      const area = document.getElementById("wizardReturnMemoArea");
+      area.hidden = false;
+      area.scrollIntoView({behavior:"smooth", block:"center"});
+    }
+
+    function updateWizardReturnMemoInput() {
+      const selected = document.querySelector(
+        'input[name="wizardReturnMemoType"]:checked'
+      );
+      const text = document.getElementById("wizardReturnMemoText");
+      text.hidden = !selected || selected.value !== "あり";
+      if (text.hidden) text.value = "";
+      if (!text.hidden) text.focus();
+    }
+
+    function confirmWizardReturnMemo() {
+      const selected = document.querySelector(
+        'input[name="wizardReturnMemoType"]:checked'
+      );
+
+      if (!selected) {
+        alert("追記なし／追記ありを選択してください");
+        return;
+      }
+
+      const memo = document
+        .getElementById("wizardReturnMemoText")
+        .value.trim();
+
+      if (selected.value === "あり" && !memo) {
+        alert("追記内容を入力してください");
+        document.getElementById("wizardReturnMemoText").focus();
+        return;
+      }
+
+      wizardReturnMemo =
+        selected.value === "あり" ? memo : "";
+      wizardReturnCaseId = createWizardReturnCaseId();
+      wizardReturnMemoConfirmed = true;
+      document.getElementById("wizardReturnMemoArea").hidden = true;
+
+      void sendWizardBatch();
+    }
+
     function createBatchId() {
       return "BATCH-" + new Date()
         .toISOString()
@@ -2007,7 +2089,7 @@ function changePreviousSettings() {
       }
     }
 
-    function sendBatchRecords(records) {
+    function sendBatchRecords(records, options) {
       const batchId = createBatchId();
       lastPendingSendId = batchId;
 
@@ -2020,19 +2102,25 @@ function changePreviousSettings() {
         }
       );
 
+      const payload = {
+        action:"batchWrite",
+        batchId:batchId,
+        sendId:batchId,
+        initialDataVersion:"status-light-v2",
+        stateValidationVersion:"known-state-v2",
+        records:recordsWithIds
+      };
+
+      if (options) {
+        Object.assign(payload, options);
+      }
+
       return fetch(GAS_URL, {
         method:"POST",
         headers:{
           "Content-Type":"text/plain"
         },
-        body:JSON.stringify({
-          action:"batchWrite",
-          batchId:batchId,
-          sendId:batchId,
-          initialDataVersion:"status-light-v2",
-          stateValidationVersion:"known-state-v2",
-          records:recordsWithIds
-        })
+        body:JSON.stringify(payload)
       }).then(async function(response) {
         const text = await response.text();
 
@@ -2293,6 +2381,8 @@ function changePreviousSettings() {
         modeLabel:wizardState.modeLabel,
         sendId:String(result.sendId || lastPendingSendId || ""),
         sentAt:new Date().toISOString(),
+        returnCaseId:String(result.returnCaseId || ""),
+        batchMemo:String(result.batchMemo || ""),
         entries:indexes
           .map(function(index) { return sourceEntries[index]; })
           .filter(Boolean),
@@ -2617,7 +2707,9 @@ function changePreviousSettings() {
         createdAt:context.sentAt,
         slipInfo:wizardCurrentSlipInfo,
         saveTitleCandidate:confirmedTitle,
-        confirmedTitle:confirmedTitle
+        confirmedTitle:confirmedTitle,
+        returnCaseId:context.returnCaseId || "",
+        memo:context.batchMemo || ""
       };
 
       if (context.isIrregular) {
@@ -2928,6 +3020,14 @@ function changePreviousSettings() {
         return;
       }
 
+      if (
+        wizardState.mode === "返却" &&
+        !wizardReturnMemoConfirmed
+      ) {
+        openWizardReturnMemoArea();
+        return;
+      }
+
       if (!confirm(
         wizardState.modeLabel + "を " +
         records.length +
@@ -2954,9 +3054,26 @@ function changePreviousSettings() {
           buildBatchRecordData
         );
 
+        const batchOptions =
+          wizardState.mode === "返却"
+            ? {
+                batchMemo:wizardReturnMemo,
+                memoUser:sendRecords[0]
+                  ? sendRecords[0].user
+                  : wizardState.user,
+                returnCaseId:wizardReturnCaseId
+              }
+            : null;
+
         const result = await sendBatchRecords(
-          sendRecords
+          sendRecords,
+          batchOptions
         );
+
+        if (batchOptions) {
+          result.batchMemo = wizardReturnMemo;
+          result.returnCaseId = wizardReturnCaseId;
+        }
 
         const failures = getWizardBatchFailures(
           result
@@ -2991,6 +3108,10 @@ function changePreviousSettings() {
           result,
           successfulIndexes
         );
+
+        if (wizardState.mode === "返却") {
+          resetWizardReturnMemoState();
+        }
 
         successfulIndexes.forEach(function(index) {
           applySuccessfulLocalState(sendRecords[index]);
@@ -4377,6 +4498,8 @@ function changePreviousSettings() {
 }
 
     function resetWizard() {
+      resetWizardReturnMemoState();
+
   stopReadOnlyScanner();
 
   wizardIrregularRecord = null;
