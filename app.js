@@ -1522,6 +1522,117 @@ function changePreviousSettings() {
       }, 250);
     }
 
+    function playWizardScanBeep(type) {
+      try {
+        const AudioContextClass =
+          window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) return;
+
+        const context = new AudioContextClass();
+
+        function startSound() {
+          if (type === "success") {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.type = "sine";
+            oscillator.frequency.value = 1600;
+            gain.gain.value = 0.8;
+
+            const start = context.currentTime;
+            oscillator.start(start);
+            oscillator.stop(start + 0.3);
+
+            setTimeout(function() {
+              context.close().catch(function() {});
+            }, 500);
+            return;
+          }
+
+          for (let index = 0; index < 3; index++) {
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.type = "square";
+            oscillator.frequency.value = 200;
+            gain.gain.value = 0.9;
+
+            const start =
+              context.currentTime + 0.05 + (index * 0.20);
+
+            oscillator.start(start);
+            oscillator.stop(start + 0.12);
+          }
+
+          setTimeout(function() {
+            context.close().catch(function() {});
+          }, 900);
+        }
+
+        if (context.state === "suspended") {
+          context.resume()
+            .then(startSound)
+            .catch(function(error) {
+              console.warn("読取音を再開できませんでした", error);
+            });
+        } else {
+          startSound();
+        }
+      } catch (error) {
+        console.warn("読取音を再生できませんでした", error);
+      }
+    }
+
+    function flashWizardScanError() {
+      const oldOverlay =
+        document.getElementById("wizardScanErrorFlashOverlay");
+
+      if (oldOverlay) oldOverlay.remove();
+
+      const overlay = document.createElement("div");
+      overlay.id = "wizardScanErrorFlashOverlay";
+      Object.assign(overlay.style, {
+        position:"fixed",
+        left:"4px",
+        top:"4px",
+        right:"4px",
+        bottom:"4px",
+        border:"8px solid #d00000",
+        borderRadius:"12px",
+        boxSizing:"border-box",
+        pointerEvents:"none",
+        zIndex:"999999",
+        opacity:"1"
+      });
+
+      document.body.appendChild(overlay);
+
+      setTimeout(function() {
+        overlay.style.opacity = "0";
+        overlay.style.transition = "opacity 0.15s";
+      }, 450);
+
+      setTimeout(function() {
+        overlay.remove();
+      }, 650);
+    }
+
+    function notifyWizardScanError(message, duration) {
+      playWizardScanBeep("error");
+
+      if (navigator.vibrate) {
+        navigator.vibrate([120, 80, 120, 80, 120]);
+      }
+
+      flashWizardScanError();
+      setTemporaryScannerStatus(message, duration || 1500);
+    }
+
     function commitWizardScanRecord(record) {
       const frame =
         document.getElementById(
@@ -1529,6 +1640,7 @@ function changePreviousSettings() {
         );
 
       frame.classList.add("isSuccess");
+      playWizardScanBeep("success");
 
       if (navigator.vibrate) {
         navigator.vibrate(80);
@@ -3306,11 +3418,9 @@ function changePreviousSettings() {
       );
 
       if (alreadyScanned) {
-        if (navigator.vibrate) navigator.vibrate(35);
-
-        setTemporaryScannerStatus(
+        notifyWizardScanError(
           "このQRは読取済みです\n重複のため追加しません",
-          1000
+          1200
         );
 
         setTimeout(function() {
@@ -3323,11 +3433,10 @@ function changePreviousSettings() {
         getScannerItemDetails(qrText);
 
       if (!details) {
-        document.getElementById(
-          "scannerStatus"
-        ).innerText =
-          "登録データに見つかりません\n" +
-          qrText;
+        notifyWizardScanError(
+          "登録データに見つかりません\n" + qrText,
+          1400
+        );
 
         setTimeout(function() {
           scannerBusy = false;
@@ -3341,11 +3450,11 @@ function changePreviousSettings() {
           wizardState.mode
         )
       ) {
-        setTemporaryScannerStatus(
+        notifyWizardScanError(
           "この管理区分では「" +
           wizardState.modeLabel +
           "」を使用できません",
-          1200
+          1400
         );
 
         setTimeout(function() {
@@ -3365,11 +3474,7 @@ function changePreviousSettings() {
             wizardState.mode
           )
         ) {
-          if (navigator.vibrate) {
-            navigator.vibrate([80, 60, 80]);
-          }
-
-          setTemporaryScannerStatus(
+          notifyWizardScanError(
             "この作業は5分以内に登録済みです\n" +
             "二重登録の可能性があるため登録できません",
             1800
@@ -3392,11 +3497,7 @@ function changePreviousSettings() {
         );
 
         if (!stateCheck.ok) {
-          if (navigator.vibrate) {
-            navigator.vibrate([80, 60, 80]);
-          }
-
-          setTemporaryScannerStatus(
+          notifyWizardScanError(
             stateCheck.message +
             "\n現在状態：" + (knownState || "状態なし"),
             1900
