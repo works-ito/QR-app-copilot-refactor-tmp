@@ -118,51 +118,62 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
        const MODE_OPTIONS = [
       {
         value:"出庫",
-        label:"出庫"
+        label:"出庫",
+        description:"機械を現場へ持ち出すときに使用します。選択した拠点の在庫から出庫中へ変更します。"
       },
       {
         value:"返却",
-        label:"返却"
+        label:"返却",
+        description:"現場から戻った機械を受け付けます。返却後は未点検として登録されます。"
       },
       {
         value:"完成機",
-        label:"完成機"
+        label:"完成機",
+        description:"点検・整備が完了し、出庫できる状態になった機械を完成機として登録します。"
       },
       {
         value:"修理中",
-        label:"修理"
+        label:"修理",
+        description:"修理が必要な機械を修理中として登録します。"
       },
       {
         value:"拠点移動",
-        label:"拠点移動"
+        label:"拠点移動",
+        description:"本社・三郷・MFの間で機械を移動するときに使用します。移動先の拠点を選択してください。"
       },
       {
         value:"出庫取消",
-        label:"出庫取消"
+        label:"出庫取消",
+        description:"誤って出庫登録した機械を、出庫前の状態へ戻すときに使用します。"
       },
       {
         value:"校正中",
         label:"校正中",
+        description:"RECの騒音計または振動計を校正へ出したときに登録します。",
         kind:"special"
       },
       {
         value:"校正完了",
         label:"校正完了",
+        description:"校正から戻ったRECの騒音計または振動計を登録します。校正実施日も入力します。",
         kind:"special"
       },
       {
         value:"交換完了",
         label:"交換完了",
+        description:"RECの内部USB交換が完了したときに登録します。交換実施日も入力します。",
         kind:"special"
       },
       {
         value:"廃棄",
         label:"廃棄",
+        description:"数量管理品のうち、全損などで使用できなくなった数量を在庫から減らします。",
         kind:"danger"
       },
       {
         value:"検品",
         label:"検品",
+        description:"返却された数量管理品を、完成機にする数と全損で廃棄する数に振り分けます。QR読取は不要です。",
         kind:"special"
       }
     ];
@@ -262,7 +273,17 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
 
       button.addEventListener(
         "click",
-        function() {
+        function(event) {
+          if (
+            button.dataset.longPressHandled ===
+            "true"
+          ) {
+            button.dataset.longPressHandled =
+              "false";
+            event.preventDefault();
+            return;
+          }
+
           if (
             typeof data.onClick ===
             "function"
@@ -272,7 +293,94 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         }
       );
 
+      if (data.description) {
+        attachModeDescriptionLongPress(
+          button,
+          data
+        );
+      }
+
       return button;
+    }
+
+    let modeDescriptionHideTimer = null;
+
+    function showModeDescription(data) {
+      const popup = document.getElementById(
+        "modeDescriptionPopup"
+      );
+      const title = document.getElementById(
+        "modeDescriptionTitle"
+      );
+      const text = document.getElementById(
+        "modeDescriptionText"
+      );
+
+      if (!popup || !title || !text) return;
+
+      title.innerText = data.label || data.value || "作業区分";
+      text.innerText = data.description || "";
+      popup.hidden = false;
+      popup.classList.add("isVisible");
+
+      if (modeDescriptionHideTimer) {
+        clearTimeout(modeDescriptionHideTimer);
+      }
+
+      modeDescriptionHideTimer = setTimeout(
+        function() {
+          popup.classList.remove("isVisible");
+          popup.hidden = true;
+        },
+        3500
+      );
+    }
+
+    function attachModeDescriptionLongPress(
+      button,
+      data
+    ) {
+      let pressTimer = null;
+
+      function cancelPress() {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+        button.classList.remove("isLongPressing");
+      }
+
+      button.addEventListener(
+        "pointerdown",
+        function() {
+          cancelPress();
+          button.dataset.longPressHandled = "false";
+          button.classList.add("isLongPressing");
+
+          pressTimer = setTimeout(
+            function() {
+              pressTimer = null;
+              button.classList.remove("isLongPressing");
+              button.dataset.longPressHandled = "true";
+              showModeDescription(data);
+            },
+            500
+          );
+        }
+      );
+
+      ["pointerup", "pointercancel", "pointerleave"].forEach(
+        function(eventName) {
+          button.addEventListener(eventName, cancelPress);
+        }
+      );
+
+      button.addEventListener(
+        "contextmenu",
+        function(event) {
+          event.preventDefault();
+        }
+      );
     }
 
     function getWizardRecTargetOptions() {
@@ -353,6 +461,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
               label:item.label,
               value:item.value,
               kind:item.kind,
+              description:item.description,
 
               onClick:function() {
                 selectMode(item);
