@@ -25,6 +25,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let simpleItems = [];
     let recItems = [];
     let quantityItems = [];
+    let quantityInspectionBalances = [];
     let managedMasterItems = [];
 
     let individualItemMap = new Map();
@@ -72,6 +73,8 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let wizardReturnCaseId = "";
     let wizardIrregularRecord = null;
     let wizardIrregularDetected = null;
+    let quantityInspectionSelections = [];
+    let quantityInspectionBusy = false;
 
     function stopAnimatedDots(elementId) {
       const timer = animatedDotsTimers.get(
@@ -160,6 +163,11 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         value:"廃棄",
         label:"廃棄",
         kind:"danger"
+      },
+      {
+        value:"検品",
+        label:"検品",
+        kind:"special"
       }
     ];
 
@@ -725,6 +733,18 @@ function changePreviousSettings() {
 }
     
    function selectMode(item) {
+  if (item.value === "検品") {
+    if (wizardState.receptionType === "irregular") {
+      alert("検品は通常受付から選択してください。QR読取は行いません。");
+      return;
+    }
+    alert(
+      "数量管理品の検品です。\n\n" +
+      "QRは読み取りません。返却された未検品数のうち、" +
+      "完成機にする数と全損で廃棄する数を品目ごとに入力します。"
+    );
+  }
+
   wizardState.mode =
     item.value;
 
@@ -980,10 +1000,20 @@ function changePreviousSettings() {
           "connectionNote"
         );
 
-      if (
+      const inspectionArea =
+        document.getElementById("quantityInspectionArea");
+
+      if (settings.mode === "検品") {
+        cameraPreview.classList.remove("isActive");
+        inspectionArea.hidden = false;
+        connectionNote.innerText =
+          "数量管理品を一覧から選択して検品します。QR読取は行いません。";
+        prepareQuantityInspectionArea();
+      } else if (
         settings.receptionType ===
         "irregular"
       ) {
+        inspectionArea.hidden = true;
         cameraPreview.classList.remove(
           "isActive"
         );
@@ -991,6 +1021,7 @@ function changePreviousSettings() {
         connectionNote.innerText =
           "本番接続時はカメラを起動せず、番号入力／番号不明・追記・写真の画面へ進みます。";
       } else {
+        inspectionArea.hidden = true;
         cameraPreview.classList.add(
           "isActive"
         );
@@ -1028,6 +1059,10 @@ function changePreviousSettings() {
       );
 
       if (
+        settings.mode === "検品"
+      ) {
+        stopReadOnlyScanner();
+      } else if (
         settings.receptionType ===
         "normal"
       ) {
@@ -1035,6 +1070,262 @@ function changePreviousSettings() {
       } else {
         stopReadOnlyScanner();
         openWizardIrregularArea();
+      }
+    }
+
+    function getQuantityInspectionKey(itemCode, location) {
+      return normalizeLookupKey(itemCode) + "||" + String(location || "").trim();
+    }
+
+    function getQuantityInspectionPending(itemCode, location) {
+      const key = getQuantityInspectionKey(itemCode, location);
+      const found = quantityInspectionBalances.find(function(item) {
+        return getQuantityInspectionKey(item.itemCode, item.location) === key;
+      });
+      return Math.max(0, Number(found && found.pendingQuantity || 0));
+    }
+
+    function getQuantityInspectionMasterItems() {
+      return quantityItems.map(function(item) {
+        const itemCode = getFirstItemValue(
+          item,
+          ["品目コード", "itemCode", "商品コード", "コード"]
+        );
+        return {
+          itemCode:itemCode,
+          displayName:getFirstItemValue(
+            item,
+            ["表示名", "品名", "商品名", "名称", "displayName", "name"]
+          ) || itemCode,
+          category:getFirstItemValue(item, ["区分", "category"]),
+          unit:getFirstItemValue(item, ["単位", "unit"]) || "個",
+          pendingQuantity:getQuantityInspectionPending(
+            itemCode,
+            wizardState.location
+          )
+        };
+      }).filter(function(item) {
+        return item.itemCode && item.pendingQuantity > 0;
+      });
+    }
+
+    function prepareQuantityInspectionArea() {
+      quantityInspectionSelections = [];
+      const select = document.getElementById("quantityInspectionItemSelect");
+      select.replaceChildren();
+
+      const availableItems = getQuantityInspectionMasterItems();
+      availableItems.forEach(function(item) {
+        const option = document.createElement("option");
+        option.value = item.itemCode;
+        option.textContent =
+          item.displayName + "（未検品 " + item.pendingQuantity + item.unit + "）";
+        select.appendChild(option);
+      });
+
+      select.disabled = availableItems.length === 0;
+      document.getElementById("quantityInspectionAddButton").disabled =
+        availableItems.length === 0;
+      document.getElementById("quantityInspectionEmpty").hidden =
+        availableItems.length > 0;
+      document.getElementById("quantityInspectionStatus").className =
+        "wizardSendStatus";
+      document.getElementById("quantityInspectionStatus").innerText = "";
+      renderQuantityInspectionRows();
+    }
+
+    function addQuantityInspectionItem() {
+      const itemCode =
+        document.getElementById("quantityInspectionItemSelect").value;
+      if (!itemCode) return;
+
+      if (quantityInspectionSelections.some(function(item) {
+        return item.itemCode === itemCode;
+      })) {
+        alert("この品目は追加済みです");
+        return;
+      }
+
+      const item = getQuantityInspectionMasterItems().find(function(candidate) {
+        return candidate.itemCode === itemCode;
+      });
+      if (!item) return;
+
+      quantityInspectionSelections.push(Object.assign({}, item, {
+        completedQuantity:0,
+        discardedQuantity:0
+      }));
+      renderQuantityInspectionRows();
+    }
+
+    function renderQuantityInspectionRows() {
+      const container = document.getElementById("quantityInspectionRows");
+      container.replaceChildren();
+
+      quantityInspectionSelections.forEach(function(item, index) {
+        const card = document.createElement("div");
+        card.className = "quantityInspectionRow";
+
+        const header = document.createElement("div");
+        header.className = "quantityInspectionRowHeader";
+        const titleBox = document.createElement("div");
+        const title = document.createElement("div");
+        title.className = "quantityInspectionRowName";
+        title.textContent = item.displayName;
+        const pending = document.createElement("div");
+        pending.className = "quantityInspectionPending";
+        pending.textContent = "未検品 " + item.pendingQuantity + item.unit;
+        titleBox.append(title, pending);
+
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "quantityInspectionRemove";
+        remove.textContent = "削除";
+        remove.addEventListener("click", function() {
+          quantityInspectionSelections.splice(index, 1);
+          renderQuantityInspectionRows();
+        });
+        header.append(titleBox, remove);
+
+        const fields = document.createElement("div");
+        fields.className = "quantityInspectionFields";
+        [
+          {key:"completedQuantity", label:"完成機にする数"},
+          {key:"discardedQuantity", label:"全損で廃棄する数"}
+        ].forEach(function(field) {
+          const label = document.createElement("label");
+          label.textContent = field.label;
+          const input = document.createElement("input");
+          input.className = "quantityInspectionInput";
+          input.type = "number";
+          input.inputMode = "numeric";
+          input.min = "0";
+          input.max = String(item.pendingQuantity);
+          input.step = "1";
+          input.value = item[field.key] || "";
+          input.placeholder = "0";
+          input.addEventListener("input", function() {
+            item[field.key] = Number(input.value || 0);
+            updateQuantityInspectionRemaining(card, item);
+          });
+          label.appendChild(input);
+          fields.appendChild(label);
+        });
+
+        const remaining = document.createElement("div");
+        remaining.className = "quantityInspectionRemaining";
+        remaining.dataset.inspectionRemaining = "true";
+        card.append(header, fields, remaining);
+        container.appendChild(card);
+        updateQuantityInspectionRemaining(card, item);
+      });
+
+      document.getElementById("quantityInspectionSendButton").disabled =
+        quantityInspectionSelections.length === 0 || quantityInspectionBusy;
+    }
+
+    function updateQuantityInspectionRemaining(card, item) {
+      const used = Number(item.completedQuantity || 0) +
+        Number(item.discardedQuantity || 0);
+      const remaining = item.pendingQuantity - used;
+      const element = card.querySelector("[data-inspection-remaining]");
+      element.textContent = "検品後の未検品残り：" + remaining + item.unit;
+      element.classList.toggle("isError", remaining < 0);
+    }
+
+    async function sendQuantityInspection() {
+      if (quantityInspectionBusy) return;
+      if (quantityInspectionSelections.length === 0) {
+        alert("検品する品目を追加してください");
+        return;
+      }
+
+      const invalid = quantityInspectionSelections.find(function(item) {
+        const complete = Number(item.completedQuantity || 0);
+        const discard = Number(item.discardedQuantity || 0);
+        return !Number.isInteger(complete) || complete < 0 ||
+          !Number.isInteger(discard) || discard < 0 ||
+          complete + discard <= 0 ||
+          complete + discard > item.pendingQuantity;
+      });
+      if (invalid) {
+        alert(invalid.displayName + "の数量を確認してください");
+        return;
+      }
+
+      const summary = quantityInspectionSelections.map(function(item) {
+        return item.displayName + "：完成 " + item.completedQuantity +
+          item.unit + "／廃棄 " + item.discardedQuantity + item.unit;
+      }).join("\n");
+      if (!confirm("次の検品結果を送信します。\n\n" + summary)) return;
+
+      quantityInspectionBusy = true;
+      renderCancelSendButton();
+      renderQuantityInspectionRows();
+      const status = document.getElementById("quantityInspectionStatus");
+      status.className = "wizardSendStatus isVisible isSending";
+      startAnimatedDots("quantityInspectionStatus", "検品結果を送信中");
+      const sendId = "inspection-" + Date.now() + "-" +
+        Math.random().toString(36).slice(2, 8);
+
+      try {
+        const response = await fetch(GAS_URL, {
+          method:"POST",
+          headers:{"Content-Type":"text/plain"},
+          body:JSON.stringify({
+            action:"quantityInspection",
+            batchId:sendId,
+            location:wizardState.location,
+            user:wizardState.user,
+            items:quantityInspectionSelections.map(function(item) {
+              return {
+                itemCode:item.itemCode,
+                displayName:item.displayName,
+                category:item.category,
+                unit:item.unit,
+                completedQuantity:item.completedQuantity,
+                discardedQuantity:item.discardedQuantity
+              };
+            })
+          })
+        });
+        const responseText = await response.text();
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (error) {
+          throw new Error("送信結果を確認できませんでした。スプレッドシートを確認してください。");
+        }
+        if (!response.ok || !result.ok) {
+          throw new Error(result.message || result.error || "検品結果の送信に失敗しました");
+        }
+
+        quantityInspectionBalances = Array.isArray(result.quantityInspectionBalances)
+          ? result.quantityInspectionBalances
+          : quantityInspectionBalances;
+        saveLastSuccessfulSend({
+          sendId:result.sendId || sendId,
+          sentAt:Date.now(),
+          expiresAt:Date.now() + CANCEL_SEND_VALID_MS,
+          successCount:Number(result.successCount || 0),
+          snapshots:[],
+          recentWorkKeys:[]
+        });
+        await saveInventoryCache();
+        stopAnimatedDots("quantityInspectionStatus");
+        status.className = "wizardSendStatus isVisible isSuccess";
+        status.innerText = "検品結果を送信しました ✔";
+        prepareQuantityInspectionArea();
+        status.className = "wizardSendStatus isVisible isSuccess";
+        status.innerText = "検品結果を送信しました ✔";
+      } catch (error) {
+        stopAnimatedDots("quantityInspectionStatus");
+        status.className = "wizardSendStatus isVisible isError";
+        status.innerText = "送信失敗\n" + (error.message || String(error));
+      } finally {
+        quantityInspectionBusy = false;
+        renderQuantityInspectionRows();
+        renderCancelSendButton();
       }
     }
 
@@ -2096,15 +2387,21 @@ function changePreviousSettings() {
     }
 
     function renderCancelSendButton() {
-      const button = document.getElementById("wizardCancelSendButton");
-      if (!button) return;
+      const buttons = [
+        document.getElementById("wizardCancelSendButton"),
+        document.getElementById("quantityInspectionCancelSendButton")
+      ].filter(Boolean);
+      if (buttons.length === 0) return;
       if (cancelSendExpiryTimer) clearTimeout(cancelSendExpiryTimer);
 
       const remaining = lastSuccessfulSend
         ? Number(lastSuccessfulSend.expiresAt || 0) - Date.now()
         : 0;
-      button.classList.toggle("isVisible", remaining > 0);
-      button.disabled = wizardSendBusy || !appInitialDataLoaded;
+      buttons.forEach(function(button) {
+        button.classList.toggle("isVisible", remaining > 0);
+        button.disabled =
+          wizardSendBusy || quantityInspectionBusy || !appInitialDataLoaded;
+      });
 
       if (remaining > 0) {
         cancelSendExpiryTimer = setTimeout(function() {
@@ -4287,6 +4584,7 @@ function changePreviousSettings() {
         simpleItems:simpleItems,
         recItems:recItems,
         quantityItems:quantityItems,
+        quantityInspectionBalances:quantityInspectionBalances,
         managedMasterItems:managedMasterItems
       };
 
@@ -4370,6 +4668,10 @@ function changePreviousSettings() {
         quantityItems = Array.isArray(
           cache.quantityItems
         ) ? cache.quantityItems : [];
+
+        quantityInspectionBalances = Array.isArray(
+          cache.quantityInspectionBalances
+        ) ? cache.quantityInspectionBalances : [];
 
         managedMasterItems = Array.isArray(
           cache.managedMasterItems
@@ -4481,6 +4783,10 @@ function changePreviousSettings() {
           result.quantityItems
         ) ? result.quantityItems : [];
 
+        quantityInspectionBalances = Array.isArray(
+          result.quantityInspectionBalances
+        ) ? result.quantityInspectionBalances : [];
+
         managedMasterItems = Array.isArray(
           result.managedMasterItems
         ) ? result.managedMasterItems : [];
@@ -4585,6 +4891,7 @@ function changePreviousSettings() {
         appInitialDataLoaded &&
         wizardState.currentStep === "complete" &&
         wizardState.receptionType === "normal" &&
+        wizardState.mode !== "検品" &&
         !scannerRunning
       ) {
         startReadOnlyScanner();
@@ -4758,6 +5065,9 @@ function changePreviousSettings() {
 
   wizardIrregularRecord = null;
   wizardIrregularDetected = null;
+  quantityInspectionSelections = [];
+  quantityInspectionBusy = false;
+  document.getElementById("quantityInspectionArea").hidden = true;
   wizardPostSendContext = null;
   wizardSelectedPhotos = [];
   wizardCurrentSlipInfo = null;
@@ -4980,6 +5290,13 @@ document
   .getElementById("wizardCancelSendButton")
   .addEventListener("click", cancelLastSuccessfulSend);
 
+document.getElementById("quantityInspectionAddButton")
+  .addEventListener("click", addQuantityInspectionItem);
+document.getElementById("quantityInspectionSendButton")
+  .addEventListener("click", sendQuantityInspection);
+document.getElementById("quantityInspectionCancelSendButton")
+  .addEventListener("click", cancelLastSuccessfulSend);
+
 document.getElementById("wizardPhotoCameraButton").addEventListener("click", function() {
   document.getElementById("wizardPhotoCameraInput").click();
 });
@@ -5027,7 +5344,8 @@ function canRefreshInventoryAutomatically() {
     !wizardSendBusy &&
     !wizardPostSendBusy &&
     !scannerBusy &&
-    scannedEntries.length === 0
+    scannedEntries.length === 0 &&
+    quantityInspectionSelections.length === 0
   );
 }
 
@@ -5039,6 +5357,7 @@ function isAutomaticReloadSafe() {
     !wizardPostSendBusy &&
     !scannerBusy &&
     scannedEntries.length === 0 &&
+    quantityInspectionSelections.length === 0 &&
     wizardSelectedPhotos.length === 0 &&
     !wizardPendingPhotoSave &&
     !(postSendArea && postSendArea.hidden === false)
