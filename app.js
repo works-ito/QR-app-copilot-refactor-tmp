@@ -2406,6 +2406,22 @@ function changePreviousSettings() {
       }
     }
 
+    function getCancelSendStatusElementId() {
+      return wizardState.mode === "検品"
+        ? "quantityInspectionStatus"
+        : "wizardSendStatus";
+    }
+
+    function setCancelSendStatus(message, stateClass) {
+      const element = document.getElementById(
+        getCancelSendStatusElementId()
+      );
+      if (!element) return;
+      element.innerText = message || "";
+      element.className =
+        "wizardSendStatus isVisible " + (stateClass || "");
+    }
+
     function restoreLastSuccessfulSend() {
       try {
         const value = JSON.parse(
@@ -2453,9 +2469,10 @@ function changePreviousSettings() {
       wizardSendBusy = true;
       scannerBusy = true;
       renderCancelSendButton();
-      startAnimatedDots("wizardSendStatus", "取消中");
-      document.getElementById("wizardSendStatus").className =
-        "wizardSendStatus isVisible isSending";
+      const cancelStatusElementId =
+        getCancelSendStatusElementId();
+      startAnimatedDots(cancelStatusElementId, "取消中");
+      setCancelSendStatus("取消中", "isSending");
 
       try {
         /*
@@ -2500,11 +2517,9 @@ function changePreviousSettings() {
           lastSuccessfulSend.recentWorkKeys || []
         );
         await saveInventoryCache();
-        setWizardSendStatus(
+        const cancelMessage =
           "直前送信を取消しました ✔\n" +
-          result.cancelCount + "件\n送信ID：" + result.sendId,
-          "isSuccess"
-        );
+          result.cancelCount + "件\n送信ID：" + result.sendId;
         if (
           wizardPostSendContext &&
           String(wizardPostSendContext.sendId || "") ===
@@ -2520,11 +2535,23 @@ function changePreviousSettings() {
           document.getElementById("wizardPhotoTitleArea").hidden = true;
         }
         clearLastSuccessfulSend();
-        setTemporaryScannerStatus(
-          "取消完了 ✔\n同じQRを再読取できます",
-          1400
-        );
-        void refreshInventoryInBackground();
+
+        if (wizardState.mode === "検品") {
+          const refreshed = await loadAppInitialData(false);
+          prepareQuantityInspectionArea();
+          setCancelSendStatus(
+            cancelMessage +
+              (refreshed ? "" : "\n未検品一覧の更新に失敗しました。最初から開き直してください。"),
+            refreshed ? "isSuccess" : "isError"
+          );
+        } else {
+          setCancelSendStatus(cancelMessage, "isSuccess");
+          setTemporaryScannerStatus(
+            "取消完了 ✔\n同じQRを再読取できます",
+            1400
+          );
+          void refreshInventoryInBackground();
+        }
       } catch (error) {
         const sendId = String(lastSuccessfulSend?.sendId || "");
         const message = error.cancelResultKnown
@@ -2536,9 +2563,9 @@ function changePreviousSettings() {
               (sendId ? "\n送信ID：" + sendId : "")
             );
 
-        setWizardSendStatus(message, "isError");
+        setCancelSendStatus(message, "isError");
       } finally {
-        stopAnimatedDots("wizardSendStatus");
+        stopAnimatedDots(cancelStatusElementId);
         wizardSendBusy = false;
         scannerBusy = false;
         renderCancelSendButton();
@@ -4883,6 +4910,15 @@ function changePreviousSettings() {
      * 取得完了後に通常受付のカメラを自動で開始する。
      */
     function startScannerAfterInventoryReady() {
+      if (
+        appInitialDataLoaded &&
+        wizardState.currentStep === "complete" &&
+        wizardState.mode === "検品"
+      ) {
+        prepareQuantityInspectionArea();
+        return;
+      }
+
       if (
         appInitialDataLoaded &&
         wizardState.currentStep === "complete" &&
