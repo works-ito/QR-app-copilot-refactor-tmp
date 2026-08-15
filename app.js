@@ -191,6 +191,14 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       "交換完了"
     ];
 
+    const UNKNOWN_IRREGULAR_ALLOWED_MODES = [
+      "出庫",
+      "出庫取消",
+      "返却",
+      "完成機",
+      "拠点移動"
+    ];
+
     const REC_DATE_REQUIRED_MODES = [
       "校正完了",
       "交換完了"
@@ -2444,6 +2452,13 @@ function changePreviousSettings() {
       };
 
       if (numberType === "番号不明") {
+        if (!UNKNOWN_IRREGULAR_ALLOWED_MODES.includes(wizardState.mode)) {
+          throw new Error(
+            "番号不明では「" + wizardState.modeLabel +
+            "」を使用できません。\n出庫・出庫取消・返却・完成機・拠点移動から選び直してください。"
+          );
+        }
+
         return Object.assign(base, {
           managementType:"unknown", displayName:"番号不明", currentState:""
         });
@@ -2456,13 +2471,34 @@ function changePreviousSettings() {
         if (!isScannerModeAllowed(details.managementType, wizardState.mode)) {
           throw new Error("この管理区分では「" + wizardState.modeLabel + "」を使用できません");
         }
-        const knownState = details.currentState === "状態なし" ? "" : details.currentState;
-        if (wizardState.mode === "出庫" && knownState === "出庫中") {
-          throw new Error("この機械はすでに出庫中です。二重出庫の可能性があるため登録できません。");
+        if (
+          isRecentSuccessfulWork(
+            enteredNumber,
+            wizardState.mode
+          )
+        ) {
+          throw new Error(
+            "この作業は5分以内に登録済みです。\n二重登録の可能性があるため登録できません。"
+          );
         }
-        if (wizardState.mode === "返却" && knownState && knownState !== "出庫中") {
-          throw new Error("この機械は出庫中ではないため返却登録できません。\n現在状態：" + knownState);
+
+        const knownState =
+          details.currentState === "状態なし"
+            ? ""
+            : details.currentState;
+        const stateCheck =
+          validateStateTransition(
+            knownState,
+            wizardState.mode
+          );
+
+        if (!stateCheck.ok) {
+          throw new Error(
+            stateCheck.message +
+            "\n現在状態：" + (knownState || "状態なし")
+          );
         }
+
         wizardIrregularDetected = details;
         return Object.assign(base, {
           managementType:details.managementType,
