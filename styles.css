@@ -616,6 +616,124 @@
   background:#f8fbff;
 }
 
+.quantityInspectionArea {
+  margin-top:20px;
+  padding:20px;
+  border:2px solid var(--blue);
+  border-radius:18px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+}
+
+.quantityInspectionGuide h2 {
+  margin:0 0 8px;
+}
+
+.quantityInspectionGuide p {
+  margin:6px 0;
+  line-height:1.6;
+}
+
+.quantityInspectionWarning {
+  color:var(--red);
+  font-weight:800;
+}
+
+.quantityInspectionArea label {
+  display:block;
+  margin:18px 0 8px;
+  font-weight:800;
+}
+
+.quantityInspectionArea select,
+.quantityInspectionInput {
+  width:100%;
+  min-height:52px;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+  color:var(--ink);
+  font:inherit;
+}
+
+#quantityInspectionAddButton {
+  width:100%;
+  margin-top:10px;
+}
+
+.quantityInspectionRows {
+  display:grid;
+  gap:14px;
+  margin-top:18px;
+}
+
+.quantityInspectionRow {
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--blue-pale);
+}
+
+.quantityInspectionRowHeader {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.quantityInspectionRowName {
+  font-size:1.08rem;
+  font-weight:800;
+}
+
+.quantityInspectionPending {
+  margin-top:4px;
+  color:var(--blue-dark);
+  font-weight:700;
+}
+
+.quantityInspectionFields {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.quantityInspectionRemove {
+  flex:0 0 auto;
+  padding:8px 10px;
+  border-color:var(--red);
+  color:var(--red);
+  background:#fff;
+}
+
+.quantityInspectionRemaining {
+  margin:12px 0 0;
+  font-weight:700;
+}
+
+.quantityInspectionRemaining.isError {
+  color:var(--red);
+}
+
+.quantityInspectionEmpty {
+  margin-top:16px;
+  padding:14px;
+  border-radius:12px;
+  background:#f4f5f7;
+  color:var(--muted);
+}
+
+@media (max-width:520px) {
+  .quantityInspectionArea {
+    padding:16px;
+  }
+
+  .quantityInspectionFields {
+    grid-template-columns:1fr;
+  }
+}
+
 .previousLead {
   margin:0 0 12px;
   color:#526073;
