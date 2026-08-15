@@ -3860,33 +3860,6 @@ function changePreviousSettings() {
       );
     }
 
-    /*
-     * 次工程のGAS送信接続でも同じ点アニメーションを使う。
-     */
-    function startWizardSendLoading(message) {
-      const button = document.getElementById(
-        "wizardSendBatchButton"
-      );
-
-      button.disabled = true;
-
-      startAnimatedDots(
-        "wizardSendBatchButton",
-        message || "送信中"
-      );
-    }
-
-    function stopWizardSendLoading() {
-      stopAnimatedDots("wizardSendBatchButton");
-
-      const button = document.getElementById(
-        "wizardSendBatchButton"
-      );
-
-      button.disabled = false;
-      renderScannerResults();
-    }
-
     function formatInventoryUpdatedAt(value) {
       const date = value
         ? new Date(value)
