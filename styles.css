@@ -304,6 +304,15 @@
 
       box-shadow:0 2px 0 rgba(30, 87, 148, 0.08);
       -webkit-touch-callout:none;
+      -webkit-user-select:none;
+      user-select:none;
+    }
+
+    .choiceButton *,
+    #modeButtons,
+    #modeButtons * {
+      -webkit-touch-callout:none;
+      -webkit-user-select:none;
       user-select:none;
     }
 
