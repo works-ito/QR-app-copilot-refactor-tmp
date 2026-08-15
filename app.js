@@ -838,6 +838,17 @@ function changePreviousSettings() {
 }
     
    function selectMode(item) {
+  if (item.value === "廃棄") {
+    const proceed = window.confirm(
+      "数量管理品の廃棄です。\n\n" +
+      "全損などで使用できなくなった数量を、現在の在庫から減らします。\n\n" +
+      "返却品を検品して一部廃棄する場合は、作業区分の「検品」を選択してください。\n\n" +
+      "廃棄へ進みますか？"
+    );
+
+    if (!proceed) return;
+  }
+
   if (item.value === "検品") {
     if (wizardState.receptionType === "irregular") {
       alert("検品は通常受付から選択してください。QR読取は行いません。");
