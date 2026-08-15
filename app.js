@@ -43,6 +43,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let resetAllArmed = false;
     let resetAllArmTimer = null;
     let wizardSendBusy = false;
+    let wizardSendResultUnknown = false;
     let lastPendingSendId = "";
     let lastSuccessfulSend = null;
     let cancelSendExpiryTimer = null;
@@ -2157,6 +2158,11 @@ function changePreviousSettings() {
         Object.assign(payload, options);
       }
 
+      /*
+       * 在庫送信は自動再送しない。
+       * GASで登録済みなのに応答だけ失われた場合の
+       * 二重登録を避けるため、結果不明として止める。
+       */
       return fetch(GAS_URL, {
         method:"POST",
         headers:{
@@ -2164,24 +2170,45 @@ function changePreviousSettings() {
         },
         body:JSON.stringify(payload)
       }).then(async function(response) {
-        const text = await response.text();
+        const responseText = await response.text();
+        let result;
 
         try {
-          const result = JSON.parse(text);
-
-          if (!result.sendId) {
-            result.sendId = batchId;
-          }
-
-          return result;
+          result = JSON.parse(responseText);
         } catch (error) {
           const unknownError = new Error(
             "送信結果を確認できませんでした"
           );
+          unknownError.sendId = batchId;
+          unknownError.responseExcerpt = responseText.slice(0, 200);
+          throw unknownError;
+        }
 
+        if (!result || typeof result.ok !== "boolean") {
+          const unknownError = new Error(
+            "送信結果の形式を確認できませんでした"
+          );
           unknownError.sendId = batchId;
           throw unknownError;
         }
+
+        /*
+         * GASが明示した失敗JSONは一部失敗処理へ渡す。
+         * HTTP異常なのに成功JSONという矛盾だけは結果不明とする。
+         */
+        if (!response.ok && result.ok !== false) {
+          const unknownError = new Error(
+            "HTTP " + response.status + "：送信結果を確定できませんでした"
+          );
+          unknownError.sendId = batchId;
+          throw unknownError;
+        }
+
+        if (!result.sendId) {
+          result.sendId = batchId;
+        }
+
+        return result;
       });
     }
 
@@ -2996,7 +3023,11 @@ function changePreviousSettings() {
         const context = wizardPostSendContext;
         const results = await Promise.all(context.records.map(async function(record, index) {
           const entry = context.entries[index] || {};
-          const response = await fetchWithRetry(GAS_URL, {
+          /*
+           * 追記保存は書込み処理なので自動再送しない。
+           * 応答だけ失われた場合の重複追記を避ける。
+           */
+          const response = await fetch(GAS_URL, {
             method:"POST", headers:{"Content-Type":"text/plain"},
             body:JSON.stringify({
               action:"addMemo", kanriNo:record.qr,
@@ -3231,11 +3262,14 @@ function changePreviousSettings() {
           lastPendingSendId ||
           "不明";
 
+        wizardSendResultUnknown = true;
+
         setWizardSendStatus(
           "送信結果不明\n" +
           "スプレッドシートを確認してください。" +
           "同じ内容をすぐに再送信しないでください。\n\n" +
-          "送信ID：" + sendId,
+          "送信ID：" + sendId +
+          "\n\n確認後は「最初から」で再開してください。",
           "isError"
         );
 
@@ -3243,7 +3277,14 @@ function changePreviousSettings() {
       } finally {
         stopAnimatedDots("wizardSendStatus");
         wizardSendBusy = false;
-        button.disabled = false;
+        button.disabled = wizardSendResultUnknown;
+        button.innerText = wizardSendResultUnknown
+          ? "送信結果不明（スプシ確認）"
+          : (
+              wizardState.mode === "返却"
+                ? "返却内容を確認"
+                : "読取分をまとめて送信"
+            );
       }
     }
 
@@ -4541,6 +4582,13 @@ function changePreviousSettings() {
 
     function resetWizard() {
       resetWizardReturnMemoState();
+
+  wizardSendResultUnknown = false;
+  const sendButton = document.getElementById("wizardSendBatchButton");
+  if (sendButton) {
+    sendButton.disabled = false;
+    sendButton.innerText = "読取分をまとめて送信";
+  }
 
   stopReadOnlyScanner();
 
