@@ -156,10 +156,6 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         kind:"special"
       },
       {
-        value:"入庫",
-        label:"入庫"
-      },
-      {
         value:"廃棄",
         label:"廃棄",
         kind:"danger"
@@ -1562,7 +1558,7 @@ function changePreviousSettings() {
         return managementType === "rec";
       }
 
-      if (["入庫", "廃棄"].includes(mode)) {
+      if (mode === "廃棄") {
         return managementType === "quantity";
       }
 
