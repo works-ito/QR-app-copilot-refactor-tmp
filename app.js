@@ -381,6 +381,17 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
           event.preventDefault();
         }
       );
+
+      ["selectstart", "dragstart"].forEach(
+        function(eventName) {
+          button.addEventListener(
+            eventName,
+            function(event) {
+              event.preventDefault();
+            }
+          );
+        }
+      );
     }
 
     function getWizardRecTargetOptions() {
