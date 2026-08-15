@@ -2382,6 +2382,7 @@ function changePreviousSettings() {
       document.getElementById("wizardIrregularNumber").disabled = false;
       document.getElementById("wizardIrregularNote").value = "";
       document.getElementById("wizardIrregularQuantity").value = "";
+      document.getElementById("wizardIrregularQuantityUnit").innerText = "";
       document.getElementById("wizardIrregularQuantityBox").hidden = true;
       document.getElementById("wizardIrregularCheckResult").innerText = "";
       document.querySelectorAll('input[name="wizardIrregularNumberType"]').forEach(function(radio) {
@@ -2470,16 +2471,69 @@ function changePreviousSettings() {
         });
       }
 
-      const quantity = findQuantityItemLocal(enteredNumber);
-      if (quantity) {
+      const quantityItem = findQuantityItemLocal(enteredNumber);
+      if (quantityItem) {
         if (!isScannerModeAllowed("quantity", wizardState.mode)) {
           throw new Error("数量管理品では「" + wizardState.modeLabel + "」を使用できません");
         }
-        const displayName = getFirstItemValue(quantity, ["表示名", "品名", "商品名", "名称", "displayName", "name"]) || enteredNumber;
-        throw new Error(
-          "数量管理品「" + displayName + "」を確認しました。\n\n" +
-          "現行GASでは数量管理品のイレギュラー受付が未接続のため、登録を停止しました。"
-        );
+
+        const itemCode = getFirstItemValue(
+          quantityItem,
+          ["品目コード", "itemCode", "商品コード", "コード"]
+        ) || enteredNumber;
+        const displayName = getFirstItemValue(
+          quantityItem,
+          ["表示名", "品名", "商品名", "名称", "displayName", "name"]
+        ) || enteredNumber;
+        const category = getFirstItemValue(
+          quantityItem,
+          ["区分", "category"]
+        ) || "";
+        const unit = getFirstItemValue(
+          quantityItem,
+          ["単位", "unit"]
+        ) || "";
+        const quantityBox =
+          document.getElementById("wizardIrregularQuantityBox");
+        const quantityInput =
+          document.getElementById("wizardIrregularQuantity");
+        const quantityUnit =
+          document.getElementById("wizardIrregularQuantityUnit");
+        const enteredQuantity = Number(quantityInput.value);
+
+        quantityBox.hidden = false;
+        quantityUnit.innerText =
+          displayName + (unit ? " ／ 単位：" + unit : "");
+
+        if (
+          !Number.isInteger(enteredQuantity) ||
+          enteredQuantity <= 0
+        ) {
+          setTimeout(function() {
+            quantityInput.focus();
+          }, 50);
+          throw new Error(
+            "数量管理品「" + displayName + "」を確認しました。\n数量を1以上の整数で入力してください。"
+          );
+        }
+
+        wizardIrregularDetected = {
+          managementType:"quantity",
+          recordType:"quantity",
+          item:quantityItem
+        };
+
+        return Object.assign(base, {
+          qrText:itemCode,
+          managementType:"quantity",
+          recordType:"quantity",
+          itemCode:itemCode,
+          displayName:displayName,
+          category:category,
+          unit:unit,
+          quantity:enteredQuantity,
+          currentState:""
+        });
       }
 
       throw new Error("入力した番号がマスタに登録されていません\n入力番号：" + enteredNumber);
@@ -4867,6 +4921,41 @@ document
   .addEventListener(
     "click",
     cancelWizardQuantityInput
+  );
+
+document
+  .querySelectorAll(
+    'input[name="wizardReturnMemoType"]'
+  )
+  .forEach(function(radio) {
+    radio.addEventListener(
+      "change",
+      updateWizardReturnMemoInput
+    );
+  });
+
+document
+  .getElementById(
+    "wizardConfirmReturnMemoButton"
+  )
+  .addEventListener(
+    "click",
+    confirmWizardReturnMemo
+  );
+
+document
+  .getElementById(
+    "wizardCancelReturnMemoButton"
+  )
+  .addEventListener(
+    "click",
+    function() {
+      resetWizardReturnMemoState();
+      setTemporaryScannerStatus(
+        "返却内容の確認を中止しました\n読取内容は残っています",
+        1200
+      );
+    }
   );
 
 document
