@@ -119,7 +119,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       {
         value:"出庫",
         label:"出庫",
-        description:"機械を現場へ持ち出すときに使用します。選択した拠点の在庫から出庫中へ変更します。"
+        description:"機械を出庫するときに使用します。登録後、選択した拠点の在庫から「出庫中」へ変更されます。"
       },
       {
         value:"返却",
@@ -332,7 +332,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
           popup.classList.remove("isVisible");
           popup.hidden = true;
         },
-        3500
+        4000
       );
     }
 
