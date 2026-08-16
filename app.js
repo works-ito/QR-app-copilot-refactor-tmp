@@ -124,7 +124,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       {
         value:"返却",
         label:"返却",
-        description:"現場から戻った機械を受け付けます。返却後は未点検として登録されます。"
+        description:"機械を返却するときに使用します。欠油の有無（ない場合も明記）・未入庫・破損状況などを追記へ入力します。"
       },
       {
         value:"完成機",
