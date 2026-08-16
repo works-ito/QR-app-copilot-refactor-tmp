@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v35 bootstrap */
+/* 販売品入庫受付 v36 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -24,6 +24,9 @@
     })
     .then(function() {
       return loadScript("./irregular-master-picker-dev.js?v=35");
+    })
+    .then(function() {
+      return loadScript("./irregular-registration-guard-dev.js?v=36");
     })
     .catch(function(error) {
       console.error("開発版追加処理の初期化に失敗しました", error);
