@@ -74,7 +74,7 @@
     guide.setAttribute("role", "note");
     guide.innerHTML = `
       <span class="modeLongPressGuideIcon" aria-hidden="true">i</span>
-      <span><strong>作業区分の説明</strong>は、ボタンを長押しすると確認できます</span>
+      <span>ボタン長押しで説明を確認できます</span>
     `;
 
     hint.insertAdjacentElement("afterend", guide);
