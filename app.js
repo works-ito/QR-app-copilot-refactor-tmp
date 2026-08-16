@@ -144,7 +144,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       {
         value:"出庫取消",
         label:"出庫取消",
-        description:"誤って出庫登録した機械を、出庫前の状態へ戻すときに使用します。"
+        description:"出庫登録の誤りや貸出キャンセル時に使用します。取消対象の機械だけを読み取ってください。案件全体は自動で取り消されません。"
       },
       {
         value:"校正中",
