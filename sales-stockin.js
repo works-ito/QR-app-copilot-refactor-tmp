@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v32 bootstrap */
+/* 販売品入庫受付 v33 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -12,14 +12,17 @@
     });
   }
 
-  loadScript("./sales-stockin-core.js?v=32")
+  loadScript("./sales-stockin-core.js?v=33")
     .then(function() {
-      return loadScript("./sales-stockin-scan-enhancements.js?v=32");
+      return loadScript("./sales-stockin-scan-enhancements.js?v=33");
     })
     .then(function() {
-      return loadScript("./sales-stockin-guards.js?v=32");
+      return loadScript("./sales-stockin-guards.js?v=33");
+    })
+    .then(function() {
+      return loadScript("./compact-scanner-dev.js?v=33");
     })
     .catch(function(error) {
-      console.error("販売品入庫受付の初期化に失敗しました", error);
+      console.error("開発版追加処理の初期化に失敗しました", error);
     });
 })();
