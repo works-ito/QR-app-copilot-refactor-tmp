@@ -139,7 +139,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       {
         value:"拠点移動",
         label:"拠点移動",
-        description:"本社・三郷・MFの間で機械を移動するときに使用します。移動先の拠点を選択してください。"
+        description:"機械を受け入れた拠点の担当者が入力します。実施拠点には、受入先の拠点を選択してください。"
       },
       {
         value:"出庫取消",
