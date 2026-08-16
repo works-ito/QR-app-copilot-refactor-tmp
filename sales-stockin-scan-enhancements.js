@@ -101,7 +101,8 @@
 
       if (
         text.includes("販売品QRではありません") ||
-        text.includes("カメラ起動失敗")
+        text.includes("カメラ起動失敗") ||
+        text.includes("先に販売品QRを読み取ってください")
       ) {
         lastFeedbackText = text;
         lastFeedbackAt = now;
@@ -126,9 +127,49 @@
       return;
     }
 
+    /*
+     * iPhoneではalert/画面遷移後に映像だけ止まることがある。
+     * 「販売品QRを読み取る」は毎回、既存Readerを完全停止してから
+     * core側の通常起動処理を走らせるリセット兼再起動ボタンにする。
+     * captureでcore側clickより先に停止する。
+     */
     startButton.addEventListener("click", function() {
+      if (typeof window.stopSalesQrScanner === "function") {
+        try { window.stopSalesQrScanner(); } catch (error) {}
+      }
+
+      const video = document.getElementById("salesStockInQrVideo");
+      if (video && video.srcObject) {
+        try {
+          video.srcObject.getTracks().forEach(function(track) {
+            track.stop();
+          });
+        } catch (error) {}
+        video.srcObject = null;
+      }
+
+      const detected = document.getElementById("salesStockInQrDetected");
+      if (detected) detected.textContent = "";
+
       scheduleSalesCameraSettings();
-    });
+    }, true);
+
+    /*
+     * カメラ起動中にnative alertを出すとiPhoneで映像が固まることがある。
+     * QR未読のまま「追加」を押した場合はcore側alertを止め、
+     * 画面内メッセージ＋エラー音/赤フラッシュだけにする。
+     */
+    addButton.addEventListener("click", function(event) {
+      const detected = document.getElementById("salesStockInQrDetected");
+      const detectedText = detected ? String(detected.textContent || "").trim() : "";
+
+      if (!detectedText) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        status.textContent = "先に販売品QRを読み取ってください";
+        return;
+      }
+    }, true);
 
     /*
      * 販売品はQR読取後に数量入力が必要。
