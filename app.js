@@ -167,13 +167,13 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
       {
         value:"廃棄",
         label:"廃棄",
-        description:"数量管理品のうち、全損などで使用できなくなった数量を在庫から減らします。",
+        description:"重量コーンなど、管理番号がなく個数で管理する品目を、破損・全損により在庫から減らします。",
         kind:"danger"
       },
       {
         value:"検品",
         label:"検品",
-        description:"返却された数量管理品を、完成機にする数と全損で廃棄する数に振り分けます。QR読取は不要です。",
+        description:"返却された重量コーンなどを、再使用できる数と廃棄する数に分けて登録します。QR読取は不要です。",
         kind:"special"
       }
     ];
@@ -851,8 +851,8 @@ function changePreviousSettings() {
    function selectMode(item) {
   if (item.value === "廃棄") {
     const proceed = window.confirm(
-      "数量管理品の廃棄です。\n\n" +
-      "全損などで使用できなくなった数量を、現在の在庫から減らします。\n\n" +
+      "重量コーンなど、管理番号がなく個数で管理する品目の廃棄です。\n\n" +
+      "破損・全損により使用できなくなった数量を、現在の在庫から減らします。\n\n" +
       "返却品を検品して一部廃棄する場合は、作業区分の「検品」を選択してください。\n\n" +
       "廃棄へ進みますか？"
     );
@@ -866,9 +866,8 @@ function changePreviousSettings() {
       return;
     }
     alert(
-      "数量管理品の検品です。\n\n" +
-      "QRは読み取りません。返却された未検品数のうち、" +
-      "完成機にする数と全損で廃棄する数を品目ごとに入力します。"
+      "返却された重量コーンなどの検品です。\n\n" +
+      "QRは読み取りません。再使用できる数と廃棄する数を、品目ごとに入力します。"
     );
   }
 
@@ -1134,7 +1133,7 @@ function changePreviousSettings() {
         cameraPreview.classList.remove("isActive");
         inspectionArea.hidden = false;
         connectionNote.innerText =
-          "数量管理品を一覧から選択して検品します。QR読取は行いません。";
+          "返却された品目を一覧から選び、再使用できる数と廃棄する数を入力します。QR読取は行いません。";
         prepareQuantityInspectionArea();
       } else if (
         settings.receptionType ===
