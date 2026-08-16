@@ -39,29 +39,10 @@
         box-shadow:inset 0 0 18px rgba(0,230,118,.75), 0 0 12px rgba(0,230,118,.5);
       }
 
-      #scannerCompactCount {
-        margin:2px 0 8px;
-        padding:7px 10px;
-        border:1px solid #c8ddfa;
-        border-radius:10px;
-        background:#eef6ff;
-        color:#145aa8;
-        font-size:15px;
-        line-height:1.2;
-        font-weight:900;
-        text-align:center;
-      }
-
       @media (max-width:390px) and (max-height:700px) {
         #cameraPreview .scannerViewport {
           scroll-margin-top:82px;
           margin-bottom:5px;
-        }
-
-        #scannerCompactCount {
-          margin-bottom:6px;
-          padding:6px 8px;
-          font-size:14px;
         }
       }
     `;
@@ -69,38 +50,5 @@
     document.head.appendChild(style);
   }
 
-  function installCompactCount() {
-    const viewport = document.getElementById("scannerViewport");
-    const originalCount = document.getElementById("scannerResultCount");
-
-    if (!viewport || !originalCount) {
-      setTimeout(installCompactCount, 100);
-      return;
-    }
-
-    let compactCount = document.getElementById("scannerCompactCount");
-    if (!compactCount) {
-      compactCount = document.createElement("div");
-      compactCount.id = "scannerCompactCount";
-      compactCount.setAttribute("aria-live", "polite");
-      viewport.insertAdjacentElement("afterend", compactCount);
-    }
-
-    function syncCount() {
-      const text = String(originalCount.textContent || "0件").trim();
-      compactCount.textContent = "読取件数：" + text;
-    }
-
-    syncCount();
-
-    const observer = new MutationObserver(syncCount);
-    observer.observe(originalCount, {
-      childList:true,
-      subtree:true,
-      characterData:true
-    });
-  }
-
   injectCompactScannerStyle();
-  installCompactCount();
 })();
