@@ -5,32 +5,26 @@
     return Boolean(panel && panel.classList.contains("isActive"));
   }
 
-  function closeSalesPanelToReception() {
-    const panel = document.getElementById("salesStockInPanel");
-    if (panel) panel.classList.remove("isActive");
-    if (typeof stopSalesQrScanner === "function") {
-      try { stopSalesQrScanner(); } catch (error) {}
-    }
-    showStep("reception");
-    document.getElementById("headerBackButton").classList.add("hidden");
-  }
-
   const salesEntryButton = document.getElementById("salesStockInEntryButton");
   if (salesEntryButton) {
     salesEntryButton.addEventListener("click", function() {
+      /* 販売品受付には専用の「受付方法へ戻る」ボタンがある。 */
       document.getElementById("headerBackButton").classList.add("hidden");
     });
   }
 
-  ["headerBackButton", "restartButton"].forEach(function(id) {
-    const button = document.getElementById(id);
-    if (!button) return;
-
-    button.addEventListener("click", function(event) {
+  const restartButton = document.getElementById("restartButton");
+  if (restartButton) {
+    restartButton.addEventListener("click", function(event) {
       if (!isSalesPanelActive()) return;
       event.preventDefault();
       event.stopImmediatePropagation();
-      closeSalesPanelToReception();
+
+      /*
+       * 販売品QRカメラが起動中でも確実にMediaStreamを破棄するため、
+       * 販売品受付中の「最初から」はページ再初期化で受付画面へ戻す。
+       */
+      window.location.reload();
     }, true);
-  });
+  }
 })();
