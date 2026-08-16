@@ -1,0 +1,238 @@
+/*
+ * イレギュラー受付：登録可否共通ガード（開発版 v36）
+ *
+ * 目的：
+ * - マスタ選択／直接入力／将来のQR経路で共通利用できる登録可否判定の入口を用意する。
+ * - GASは変更しない。
+ * - 既存app.jsの状態遷移判定 validateStateTransition() を優先して再利用する。
+ * - 現段階ではマスタ選択UIの「追加」直前だけにガードを接続する。
+ */
+(function() {
+  "use strict";
+
+  function normalize(text) {
+    return String(text == null ? "" : text).trim();
+  }
+
+  function currentMode() {
+    const mode = document.getElementById("mode");
+    return normalize(mode && mode.value);
+  }
+
+  function getFirstValue(item, keys) {
+    if (!item) return "";
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(item, key)) {
+        const found = item[key];
+        if (found !== undefined && found !== null && found !== "") {
+          return normalize(found);
+        }
+      }
+    }
+    return "";
+  }
+
+  function managedIdOf(item) {
+    return getFirstValue(item, [
+      "管理ID",
+      "管理番号",
+      "managedId",
+      "managementId",
+      "machineId",
+      "id"
+    ]);
+  }
+
+  function stateOf(item) {
+    return getFirstValue(item, [
+      "現在状態",
+      "最新状態",
+      "状態",
+      "管理状態",
+      "作業区分",
+      "status",
+      "currentStatus"
+    ]);
+  }
+
+  function allManagedSourceItems() {
+    const rows = [];
+    try {
+      if (typeof individualItems !== "undefined" && Array.isArray(individualItems)) rows.push(...individualItems);
+      if (typeof simpleItems !== "undefined" && Array.isArray(simpleItems)) rows.push(...simpleItems);
+      if (typeof recItems !== "undefined" && Array.isArray(recItems)) rows.push(...recItems);
+      if (typeof managedMasterItems !== "undefined" && Array.isArray(managedMasterItems)) rows.push(...managedMasterItems);
+    } catch (error) {
+      console.warn("開発版ガード：現在状態データの参照に失敗しました", error);
+    }
+    return rows;
+  }
+
+  function findManagedItem(managedId) {
+    const target = normalize(managedId);
+    if (!target) return null;
+    return allManagedSourceItems().find(function(item) {
+      return managedIdOf(item) === target;
+    }) || null;
+  }
+
+  function queueContainsManagedId(managedId) {
+    const target = normalize(managedId);
+    if (!target) return false;
+    const list = document.getElementById("irregularMasterQueueList");
+    if (!list) return false;
+    return Array.from(list.querySelectorAll(".irregularMasterQueueMain")).some(function(el) {
+      return normalize(el.textContent) === target;
+    });
+  }
+
+  function recentWorkBlocked(managedId, mode) {
+    try {
+      if (typeof isRecentSuccessfulWork === "function") {
+        return Boolean(isRecentSuccessfulWork(managedId, mode));
+      }
+    } catch (error) {
+      console.warn("開発版ガード：直近送信判定を参照できませんでした", error);
+    }
+    return false;
+  }
+
+  function validateTransition(currentState, mode) {
+    try {
+      if (typeof validateStateTransition === "function") {
+        return validateStateTransition(currentState, mode);
+      }
+    } catch (error) {
+      console.warn("開発版ガード：既存状態遷移判定を参照できませんでした", error);
+    }
+
+    return {
+      ok:true,
+      warning:true,
+      message:"既存の状態遷移判定を取得できないため、開発版では判定を保留しました。"
+    };
+  }
+
+  /*
+   * 将来の共通入口。
+   * record例：
+   * { type:"machine", managedId:"ABC-0001" }
+   * { type:"quantity", code:"ITEM001", quantity:2 }
+   */
+  function canAddIrregularItem(record, options) {
+    const data = record || {};
+    const config = options || {};
+    const mode = normalize(config.mode || currentMode());
+
+    if (data.type === "quantity") {
+      return {
+        ok:true,
+        warning:false,
+        code:"QUANTITY_OK",
+        message:""
+      };
+    }
+
+    const managedId = normalize(data.managedId);
+    if (!managedId) {
+      return {
+        ok:false,
+        warning:false,
+        code:"MANAGED_ID_REQUIRED",
+        message:"管理番号を選択してください。"
+      };
+    }
+
+    if (!config.skipQueueCheck && queueContainsManagedId(managedId)) {
+      return {
+        ok:false,
+        warning:false,
+        code:"DUPLICATE_IN_QUEUE",
+        message:"この管理番号はすでに追加済みです。"
+      };
+    }
+
+    if (mode && recentWorkBlocked(managedId, mode)) {
+      return {
+        ok:false,
+        warning:false,
+        code:"RECENT_SUCCESS_DUPLICATE",
+        message:"この機械は直近に同じ作業で送信済みです。\n二重登録防止のため追加できません。"
+      };
+    }
+
+    const item = findManagedItem(managedId);
+    if (!item) {
+      return {
+        ok:true,
+        warning:true,
+        code:"STATE_NOT_FOUND",
+        message:"現在状態を取得できませんでした。GAS接続後に最新状態判定へ置き換わります。"
+      };
+    }
+
+    const currentState = stateOf(item);
+    const transition = validateTransition(currentState, mode);
+
+    return {
+      ok:Boolean(transition && transition.ok),
+      warning:Boolean(transition && transition.warning),
+      code:transition && transition.ok ? "STATE_OK" : "STATE_BLOCKED",
+      message:normalize(transition && transition.message),
+      managedId:managedId,
+      mode:mode,
+      currentState:currentState
+    };
+  }
+
+  /* 将来、QR・直接入力側からもこの同じ入口を呼べるよう公開する。 */
+  window.canAddIrregularItem = canAddIrregularItem;
+
+  function selectedManagedIdFromUi() {
+    const el = document.getElementById("irregularMasterPendingMain");
+    return normalize(el && el.textContent);
+  }
+
+  function showBlocked(result) {
+    alert(result.message || "この内容は追加できません。");
+  }
+
+  function showWarning(result) {
+    const notice = document.getElementById("irregularMasterNotice");
+    if (!notice || !result.message) return;
+    notice.textContent = result.message;
+    notice.hidden = false;
+  }
+
+  function guardMachineAdd(event) {
+    const button = event.target && event.target.closest
+      ? event.target.closest("#irregularMasterAddMachine")
+      : null;
+    if (!button) return;
+
+    const managedId = selectedManagedIdFromUi();
+    const result = canAddIrregularItem({
+      type:"machine",
+      managedId:managedId
+    });
+
+    if (!result.ok) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showBlocked(result);
+      return;
+    }
+
+    if (result.warning) {
+      showWarning(result);
+    }
+  }
+
+  /*
+   * captureで既存の「追加」処理より先に判定する。
+   * OKなら既存処理へそのまま通し、NGだけ止める。
+   */
+  document.addEventListener("click", guardMachineAdd, true);
+
+  console.info("開発版：イレギュラー受付 共通登録ガード v36 読込完了");
+})();
