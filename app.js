@@ -2593,8 +2593,11 @@ function changePreviousSettings() {
         return;
       }
       if (!confirm(
-        "直前に送信した" + lastSuccessfulSend.successCount +
-        "件を取り消します。よろしいですか？"
+        "直前の送信1回分を取り消します。\n\n" +
+        "対象：この端末から最後に送信した" +
+        lastSuccessfulSend.successCount + "件\n" +
+        "今日のその他の登録は取り消されません。\n\n" +
+        "取り消しますか？"
       )) return;
 
       wizardSendBusy = true;
