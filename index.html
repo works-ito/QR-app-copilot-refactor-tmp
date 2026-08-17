@@ -581,7 +581,104 @@
     </section>
   </main>
 
-  <!-- 開発版専用読取強化：app.jsより前にZXingへTRY_HARDERを追加 -->
+  <!--
+    現行処理との接続用フィールド。
+    既存の送信・状態判定処理はこれらのIDを参照するため、
+    ウィザードの選択結果をここへ同期する。
+  -->
+  <div id="legacySelectionBridge" hidden>
+    <select id="mode" aria-hidden="true"></select>
+
+    <select id="location" aria-hidden="true">
+      <option value="本社">本社</option>
+      <option value="三郷">三郷</option>
+      <option value="MF">MF</option>
+    </select>
+
+    <select id="user" aria-hidden="true">
+      <option value="奥">奥</option>
+      <option value="滝島">滝島</option>
+      <option value="上野">上野</option>
+      <option value="見﨑">見﨑</option>
+      <option value="田之岡">田之岡</option>
+      <option value="篠塚">篠塚</option>
+      <option value="その他">その他</option>
+    </select>
+
+    <select id="recTarget" aria-hidden="true">
+      <option value="騒音計">騒音計</option>
+      <option value="振動計">振動計</option>
+      <option value="内部USB">内部USB</option>
+    </select>
+
+    <input id="recDate" type="date" aria-hidden="true">
+  </div>
+
+  <!-- 送信後の写真・REC追記フロー -->
+  <section id="wizardPostSendArea" class="wizardPostSendArea" hidden>
+    <div id="wizardIrregularArea" class="wizardPostCard" hidden>
+      <h3>イレギュラー受付内容</h3>
+      <div class="wizardRadioGrid">
+        <label><input type="radio" name="wizardIrregularNumberType" value="入力" checked>番号を入力する</label>
+        <label><input type="radio" name="wizardIrregularNumberType" value="番号不明">番号が読めない</label>
+      </div>
+      <label for="wizardIrregularNumber">管理番号または品目コード</label>
+      <input id="wizardIrregularNumber" type="text" autocomplete="off" placeholder="管理番号または品目コードを入力">
+      <div class="wizardRadioGrid">
+        <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票あり" checked>伝票あり</label>
+        <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票なし">伝票なし</label>
+      </div>
+      <div id="wizardIrregularSlipGuide" class="wizardPostSummary">1枚目に伝票写真を追加してください。</div>
+      <label for="wizardIrregularNote">状況・理由</label>
+      <div class="irregularNoteEmphasis">
+        欠油・未入庫・破損状況などを必ず入力
+      </div>
+      <textarea id="wizardIrregularNote" placeholder="QR破損・汚れ・管理番号が読めない・機械の特徴などを必ず入力"></textarea>
+      <div id="wizardIrregularQuantityBox" hidden>
+        <label for="wizardIrregularQuantity">数量</label>
+        <input id="wizardIrregularQuantity" type="number" inputmode="numeric" min="1" step="1" placeholder="数量">
+        <div id="wizardIrregularQuantityUnit" class="wizardPostSummary"></div>
+      </div>
+      <div id="wizardIrregularCheckResult" class="wizardPostSummary"></div>
+      <button type="button" id="wizardConfirmIrregularButton">入力内容を確認して写真へ進む</button>
+      <button type="button" id="wizardCancelIrregularButton" class="secondaryButton">イレギュラー受付を取消</button>
+    </div>
+
+    <div id="wizardRecMemoArea" class="wizardPostCard" hidden>
+      <h3>REC追記</h3>
+      <div id="wizardRecMemoTarget" class="wizardPostSummary"></div>
+      <textarea id="wizardRecMemoText" placeholder="発送日・発送先・証明書待ち等"></textarea>
+      <button type="button" id="wizardSaveRecMemoButton">追記を保存</button>
+      <button type="button" id="wizardSkipRecMemoButton" class="secondaryButton">追記なしで完了</button>
+    </div>
+
+    <div id="wizardPhotoArea" class="wizardPostCard" hidden>
+      <h3 id="wizardPhotoHeading">写真の添付</h3>
+      <p>1枚目は伝票写真を選択してください。顧客名・現場名の自動取得に使用します。</p>
+      <div id="wizardPhotoSummary" class="wizardPostSummary"></div>
+      <input id="wizardPhotoCameraInput" type="file" accept="image/*" capture="environment" hidden>
+      <input id="wizardPhotoLibraryInput" type="file" accept="image/*" multiple hidden>
+      <button type="button" id="wizardPhotoCameraButton">カメラで撮影</button>
+      <button type="button" id="wizardPhotoLibraryButton">ライブラリから選ぶ</button>
+      <button type="button" id="wizardClearPhotosButton" class="secondaryButton">選択写真をクリア</button>
+      <div id="wizardPhotoPreview" class="wizardPostSummary">写真はまだ選択されていません。</div>
+      <button type="button" id="wizardSavePhotosButton" hidden>写真を保存</button>
+      <button type="button" id="wizardSkipPhotosButton" class="secondaryButton">写真なしで完了</button>
+    </div>
+
+    <div id="wizardPhotoTitleArea" class="wizardPostCard" hidden>
+      <h3>保存タイトルを確認してください</h3>
+      <div id="wizardPhotoTitleCandidate" class="wizardTitleCandidate">タイトル未取得</div>
+      <label for="wizardPhotoCustomerName">顧客名</label>
+      <input id="wizardPhotoCustomerName" type="text" autocomplete="off" placeholder="顧客名">
+      <label for="wizardPhotoSiteName">現場名</label>
+      <input id="wizardPhotoSiteName" type="text" autocomplete="off" placeholder="現場名">
+      <button type="button" id="wizardConfirmPhotoTitleButton">このタイトルで保存</button>
+      <button type="button" id="wizardBackToPhotosButton" class="secondaryButton">写真選択画面へ戻る</button>
+    </div>
+  </section>
+
+  <div id="inventoryRuntime" hidden></div>
   <script src="./scanner-try-harder-dev.js?v=48"></script>
   <script src="./app.js?v=28"></script>
   <script src="./sales-stockin.js?v=29"></script>
