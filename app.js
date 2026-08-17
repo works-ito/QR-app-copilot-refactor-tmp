@@ -2665,6 +2665,7 @@ function changePreviousSettings() {
     function renderCancelSendButton() {
       const buttons = [
         document.getElementById("wizardCancelSendButton"),
+        document.getElementById("wizardPostSendCancelButton"),
         document.getElementById("quantityInspectionCancelSendButton")
       ].filter(Boolean);
       if (buttons.length === 0) return;
@@ -2673,10 +2674,30 @@ function changePreviousSettings() {
       const remaining = lastSuccessfulSend
         ? Number(lastSuccessfulSend.expiresAt || 0) - Date.now()
         : 0;
+      const remainingMinutes =
+        Math.max(
+          1,
+          Math.ceil(remaining / 60000)
+        );
+
       buttons.forEach(function(button) {
         button.classList.toggle("isVisible", remaining > 0);
         button.disabled =
           wizardSendBusy || quantityInspectionBusy || !appInitialDataLoaded;
+
+        if (remaining > 0) {
+          button.innerText =
+            remaining < 60000
+              ? "直前送信を取消（残り1分未満）"
+              : (
+                  "直前送信を取消（残り約" +
+                  remainingMinutes +
+                  "分）"
+                );
+        } else {
+          button.innerText =
+            "直前送信を取消（期限切れ）";
+        }
       });
 
       if (remaining > 0) {
@@ -2803,11 +2824,14 @@ function changePreviousSettings() {
         const cancelMessage =
           "直前送信を取消しました ✔\n" +
           result.cancelCount + "件\n送信ID：" + result.sendId;
-        if (
-          wizardPostSendContext &&
-          String(wizardPostSendContext.sendId || "") ===
-            String(lastSuccessfulSend.sendId || "")
-        ) {
+        const cancelledActivePostSend =
+          Boolean(
+            wizardPostSendContext &&
+            String(wizardPostSendContext.sendId || "") ===
+              String(lastSuccessfulSend.sendId || "")
+          );
+
+        if (cancelledActivePostSend) {
           wizardPostSendContext = null;
           wizardSelectedPhotos = [];
           wizardCurrentSlipInfo = null;
@@ -2834,6 +2858,12 @@ function changePreviousSettings() {
             1400
           );
           void refreshInventoryInBackground();
+
+          if (cancelledActivePostSend) {
+            await resumeWizardContinuousScan(
+              "取消完了 ✔\n同じQRを再読取できます"
+            );
+          }
         }
       } catch (error) {
         const sendId = String(lastSuccessfulSend?.sendId || "");
@@ -5818,6 +5848,10 @@ document
 
 document
   .getElementById("wizardCancelSendButton")
+  .addEventListener("click", cancelLastSuccessfulSend);
+
+document
+  .getElementById("wizardPostSendCancelButton")
   .addEventListener("click", cancelLastSuccessfulSend);
 
 document.getElementById("quantityInspectionAddButton")
