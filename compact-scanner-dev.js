@@ -1,17 +1,22 @@
-/* 開発版 v52：zxing-wasm採用後の最小カメラ枠テスト */
+/* 開発版 v53：10:9カメラを画面幅へふんわり追従 */
 (function() {
   "use strict";
 
   /*
-   * 読取ロジック・ズームには触れず、表示領域だけを小さくする。
-   * zxing-wasm補助が小さい表示でもData Matrixを安定して拾えるか実機確認する。
-   * video自体のカメラ入力解像度は変更しない。
+   * iPhone SE 375px幅ではv52とほぼ同じ大きさを維持。
+   * 画面幅が広い端末ではカメラだけ少しずつ広げ、最大430pxで止める。
+   * 常に画面中央配置。読取ロジック・ズーム・入力解像度は変更しない。
    */
   const style = document.createElement("style");
-  style.id = "compactScannerV52Style";
+  style.id = "compactScannerV53Style";
   style.textContent = `
     .scannerViewport {
-      max-width: 430px;
+      width: clamp(351px, 94vw, 430px) !important;
+      max-width: none !important;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-left: 0 !important;
+      margin-right: 0 !important;
     }
 
     .scannerVideo {
@@ -27,8 +32,14 @@
       border-width: 3px !important;
       border-radius: 12px !important;
     }
+
+    @media (max-width: 374px) {
+      .scannerViewport {
+        width: calc(100vw - 18px) !important;
+      }
+    }
   `;
   document.head.appendChild(style);
 
-  console.info("開発版 v52：最小カメラ表示 10:9 + ガイド40% 有効");
+  console.info("開発版 v53：10:9カメラ幅レスポンシブ + ガイド40% 有効");
 })();
