@@ -2665,7 +2665,6 @@ function changePreviousSettings() {
     function renderCancelSendButton() {
       const buttons = [
         document.getElementById("wizardCancelSendButton"),
-        document.getElementById("wizardPostSendCancelButton"),
         document.getElementById("quantityInspectionCancelSendButton")
       ].filter(Boolean);
       if (buttons.length === 0) return;
@@ -5819,10 +5818,6 @@ document
 
 document
   .getElementById("wizardCancelSendButton")
-  .addEventListener("click", cancelLastSuccessfulSend);
-
-document
-  .getElementById("wizardPostSendCancelButton")
   .addEventListener("click", cancelLastSuccessfulSend);
 
 document.getElementById("quantityInspectionAddButton")
