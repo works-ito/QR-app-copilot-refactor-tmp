@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>QR在庫管理｜開発版</title>
   <script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"></script>
-  <link rel="stylesheet" href="./styles.css?v=14">
+  <link rel="stylesheet" href="./styles.css?v=15">
 </head>
 <body>
 <main class="app">
@@ -410,6 +410,23 @@
             class="scannerQuantityInfo"
           ></div>
 
+          <div
+            id="scannerQuantityCheckoutBox"
+            class="scannerQuantityCheckoutBox"
+            hidden
+          >
+            <label for="scannerQuantityCheckoutSelect">
+              取消対象の出庫履歴
+            </label>
+
+            <select id="scannerQuantityCheckoutSelect"></select>
+
+            <div
+              id="scannerQuantityCheckoutStatus"
+              class="scannerQuantityCheckoutStatus"
+            ></div>
+          </div>
+
           <div class="scannerQuantityField">
             <input
               id="scannerQuantityValue"
@@ -691,7 +708,7 @@
 
   <div id="inventoryRuntime" hidden></div>
   <script src="./scanner-try-harder-dev.js?v=48"></script>
-  <script src="./app.js?v=63"></script>
-  <script src="./sales-stockin.js?v=62"></script>
+  <script src="./app.js?v=64"></script>
+  <script src="./sales-stockin.js?v=64"></script>
 </body>
 </html>

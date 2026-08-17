@@ -1041,6 +1041,42 @@
   white-space:pre-wrap;
 }
 
+.scannerQuantityCheckoutBox {
+  margin-top:12px;
+  padding:10px;
+  border:1px solid #99c5ff;
+  border-radius:10px;
+  background:#fff;
+}
+
+.scannerQuantityCheckoutBox label {
+  display:block;
+  margin-bottom:6px;
+  color:var(--ink);
+  font-size:13px;
+  font-weight:900;
+}
+
+.scannerQuantityCheckoutBox select {
+  width:100%;
+  min-height:48px;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#fff;
+  color:var(--ink);
+  font-size:16px;
+}
+
+.scannerQuantityCheckoutStatus {
+  margin-top:7px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  line-height:1.5;
+  white-space:pre-wrap;
+}
+
 .scannerQuantityField {
   display:grid;
   grid-template-columns:1fr auto;

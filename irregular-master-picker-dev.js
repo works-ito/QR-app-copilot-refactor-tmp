@@ -1,5 +1,5 @@
 /*
- * イレギュラー受付：マスタ選択UI（開発版 v62）
+ * イレギュラー受付：マスタ選択UI（開発版 v64）
  *
  * GAS・既存送信処理は変更しない。
  * 管理番号候補は「簡易個体 → 個体 → REC → 軽量マスタ」の順で現在状態を優先し、
@@ -22,6 +22,8 @@
     item:null,
     pending:null,
     selectedManaged:new Map(),
+    quantityCheckoutCandidates:[],
+    selectedQuantityCheckout:null,
     queue:[]
   };
 
@@ -204,6 +206,10 @@
       #${ROOT_ID} .irregularMasterPendingTitle{margin:0 0 6px;font-size:13px;font-weight:800}
       #${ROOT_ID} .irregularMasterPendingMain{font-size:15px;font-weight:800;line-height:1.4}
       #${ROOT_ID} .irregularMasterPendingSub{margin-top:3px;font-size:12px;color:#64748b}
+      #${ROOT_ID} .irregularMasterQuantityCheckout{margin-top:10px;padding:9px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff}
+      #${ROOT_ID} .irregularMasterQuantityCheckout label{display:block;margin:0 0 5px;font-size:12px;font-weight:800}
+      #${ROOT_ID} .irregularMasterQuantityCheckout select{width:100%;min-height:46px;padding:7px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;font-size:14px}
+      #${ROOT_ID} .irregularMasterQuantityCheckoutStatus{margin-top:6px;font-size:11px;line-height:1.45;color:#64748b}
       #${ROOT_ID} .irregularMasterQuantityField{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:10px}
       #${ROOT_ID} .irregularMasterQuantityField input{min-width:0;width:100%;min-height:48px;font-size:16px!important}
       #${ROOT_ID} .irregularMasterQuantityUnit{min-width:34px;text-align:left;font-weight:800}
@@ -492,8 +498,34 @@
     if (queue) queue.scrollIntoView({behavior:"smooth",block:"nearest"});
   }
 
-  function renderQuantity(item) {
+  function formatCheckoutCandidate(candidate) {
+    const date = new Date(candidate.timestamp);
+    const dateText = isNaN(date.getTime())
+      ? String(candidate.timestamp || "日時不明")
+      : new Intl.DateTimeFormat("ja-JP", {
+          month:"2-digit",
+          day:"2-digit",
+          hour:"2-digit",
+          minute:"2-digit",
+          hour12:false
+        }).format(date);
+
+    return (
+      dateText + " ／ " +
+      (candidate.user || "担当者不明") +
+      " ／ 出庫" +
+      candidate.originalQuantity +
+      (candidate.unit || "個") +
+      " ／ 取消可能" +
+      candidate.remainingQuantity +
+      (candidate.unit || "個")
+    );
+  }
+
+  async function renderQuantity(item) {
     pickerState.item = item;
+    pickerState.quantityCheckoutCandidates = [];
+    pickerState.selectedQuantityCheckout = null;
     clearManagedSelection();
     setCategoryBadge(item.category);
     notice("");
@@ -503,10 +535,98 @@
     const sub = document.getElementById("irregularMasterQuantitySub");
     const input = document.getElementById("irregularMasterQuantityValue");
     const unit = document.getElementById("irregularMasterQuantityUnit");
+    const addButton = document.getElementById("irregularMasterAddQuantity");
+    const checkoutBox = document.getElementById("irregularMasterQuantityCheckout");
+    const checkoutSelect = document.getElementById("irregularMasterQuantityCheckoutSelect");
+    const checkoutStatus = document.getElementById("irregularMasterQuantityCheckoutStatus");
+    const isCheckoutCancel =
+      typeof wizardState !== "undefined" &&
+      wizardState.mode === "出庫取消";
+
     if (name) name.textContent = item.name;
     if (sub) sub.textContent = item.code + (item.preview ? " ／ UI確認用" : " ／ 数量管理");
-    if (input) input.value = "";
+    if (input) {
+      input.value = "";
+      input.removeAttribute("max");
+      input.placeholder = "数量";
+      input.disabled = isCheckoutCancel;
+    }
     if (unit) unit.textContent = item.unit || "個";
+    if (addButton) addButton.disabled = isCheckoutCancel;
+    if (checkoutBox) checkoutBox.hidden = !isCheckoutCancel;
+    if (checkoutSelect) checkoutSelect.replaceChildren();
+
+    if (!isCheckoutCancel) return;
+
+    if (checkoutStatus) {
+      checkoutStatus.textContent = "取消可能な出庫履歴を確認中...";
+    }
+
+    try {
+      if (typeof window.getQuantityCheckoutCandidates !== "function") {
+        throw new Error("出庫履歴取得機能を読み込めませんでした");
+      }
+
+      const candidates =
+        await window.getQuantityCheckoutCandidates(
+          item.code,
+          wizardState.location
+        );
+
+      if (pickerState.item !== item) return;
+
+      pickerState.quantityCheckoutCandidates = candidates;
+
+      if (!candidates.length) {
+        if (checkoutStatus) {
+          checkoutStatus.textContent =
+            "この品目・拠点には取消可能な出庫履歴がありません。";
+        }
+        return;
+      }
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "取消対象の出庫履歴を選択";
+      checkoutSelect.appendChild(placeholder);
+
+      candidates.forEach(function(candidate) {
+        const option = document.createElement("option");
+        option.value = candidate.logId;
+        option.textContent = formatCheckoutCandidate(candidate);
+        checkoutSelect.appendChild(option);
+      });
+
+      if (checkoutStatus) {
+        checkoutStatus.textContent =
+          "どの出庫分を取り消すか選択してください。";
+      }
+
+      checkoutSelect.onchange = function() {
+        const selected = candidates.find(function(candidate) {
+          return candidate.logId === checkoutSelect.value;
+        });
+
+        pickerState.selectedQuantityCheckout = selected || null;
+        input.value = "";
+        input.disabled = !selected;
+        addButton.disabled = !selected;
+
+        if (selected) {
+          input.max = String(selected.remainingQuantity);
+          input.placeholder = "最大" + selected.remainingQuantity;
+          checkoutStatus.textContent =
+            formatCheckoutCandidate(selected);
+          input.focus();
+        }
+      };
+    } catch (error) {
+      if (checkoutStatus) {
+        checkoutStatus.textContent =
+          "出庫履歴取得失敗：" +
+          (error && error.message ? error.message : String(error));
+      }
+    }
   }
 
   function addPendingQuantity() {
@@ -519,23 +639,91 @@
       if (input) input.focus();
       return;
     }
+
+    const isCheckoutCancel =
+      typeof wizardState !== "undefined" &&
+      wizardState.mode === "出庫取消";
+
+    const selectedCheckout =
+      pickerState.selectedQuantityCheckout;
+
+    if (isCheckoutCancel && !selectedCheckout) {
+      alert("取消対象の出庫履歴を選択してください");
+      return;
+    }
+
+    if (
+      isCheckoutCancel &&
+      quantity > Number(selectedCheckout.remainingQuantity || 0)
+    ) {
+      alert(
+        "取消可能数は" +
+        selectedCheckout.remainingQuantity +
+        (selectedCheckout.unit || item.unit || "個") +
+        "です"
+      );
+      return;
+    }
+
     addQueueRecord({
-      type:"quantity",category:item.category,code:item.code,name:item.name,
-      quantity:quantity,unit:item.unit || "個",preview:Boolean(item.preview)
+      type:"quantity",
+      category:item.category,
+      code:item.code,
+      name:item.name,
+      quantity:quantity,
+      unit:item.unit || "個",
+      preview:Boolean(item.preview),
+      sourceQuantityLogId:
+        selectedCheckout ? selectedCheckout.logId : "",
+      checkoutLabel:
+        selectedCheckout
+          ? formatCheckoutCandidate(selectedCheckout)
+          : "",
+      maxCancelableQuantity:
+        selectedCheckout
+          ? Number(selectedCheckout.remainingQuantity || 0)
+          : 0
     });
   }
 
   function queueKey(record) {
     if (record.type === "machine") return "machine:"+record.managedId;
-    return "quantity:"+record.code;
+    return (
+      "quantity:" +
+      record.code +
+      (
+        record.sourceQuantityLogId
+          ? ":" + record.sourceQuantityLogId
+          : ""
+      )
+    );
   }
 
   function addQueueRecord(record) {
     const key = queueKey(record);
     const existingIndex = pickerState.queue.findIndex(function(item){return queueKey(item) === key});
     if (existingIndex !== -1) {
-      if (record.type === "quantity") pickerState.queue[existingIndex].quantity += record.quantity;
-      else {
+      if (record.type === "quantity") {
+        const nextQuantity =
+          pickerState.queue[existingIndex].quantity +
+          record.quantity;
+
+        if (
+          record.maxCancelableQuantity > 0 &&
+          nextQuantity > record.maxCancelableQuantity
+        ) {
+          alert(
+            "この出庫履歴の取消可能数は" +
+            record.maxCancelableQuantity +
+            (record.unit || "個") +
+            "です"
+          );
+          return;
+        }
+
+        pickerState.queue[existingIndex].quantity =
+          nextQuantity;
+      } else {
         alert("この管理番号はすでに追加済みです");
         return;
       }
@@ -575,7 +763,12 @@
       main.textContent = record.type === "machine" ? record.managedId : record.name+" × "+record.quantity+(record.unit || "個");
       const sub = document.createElement("div");
       sub.className = "irregularMasterQueueSub";
-      sub.textContent = record.category+" ／ "+record.name+(record.preview ? " ／ UI確認用" : "");
+      sub.textContent =
+        record.category + " ／ " + record.name +
+        (record.checkoutLabel
+          ? " ／ " + record.checkoutLabel
+          : "") +
+        (record.preview ? " ／ UI確認用" : "");
       body.append(main,sub);
 
       const remove = document.createElement("button");
@@ -716,6 +909,11 @@
           <div class="irregularMasterPending">
             <div id="irregularMasterQuantityName" class="irregularMasterPendingMain"></div>
             <div id="irregularMasterQuantitySub" class="irregularMasterPendingSub"></div>
+            <div id="irregularMasterQuantityCheckout" class="irregularMasterQuantityCheckout" hidden>
+              <label for="irregularMasterQuantityCheckoutSelect">取消対象の出庫履歴</label>
+              <select id="irregularMasterQuantityCheckoutSelect"></select>
+              <div id="irregularMasterQuantityCheckoutStatus" class="irregularMasterQuantityCheckoutStatus"></div>
+            </div>
             <div class="irregularMasterQuantityField"><input id="irregularMasterQuantityValue" type="number" inputmode="numeric" min="1" step="1" placeholder="数量"><span id="irregularMasterQuantityUnit" class="irregularMasterQuantityUnit">個</span></div>
             <button type="button" id="irregularMasterAddQuantity" class="nextButton irregularMasterAddButton">追加</button>
           </div>
