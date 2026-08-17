@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v51 bootstrap */
+/* 販売品入庫受付 v52 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -26,7 +26,7 @@
       return loadScript("./sales-stockin-guards.js?v=33");
     })
     .then(function() {
-      return loadScript("./compact-scanner-dev.js?v=51");
+      return loadScript("./compact-scanner-dev.js?v=52");
     })
     .then(function() {
       return loadScript("./irregular-master-picker-dev.js?v=41");
