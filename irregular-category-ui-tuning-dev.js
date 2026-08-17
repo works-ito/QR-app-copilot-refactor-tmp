@@ -1,4 +1,4 @@
-/* 開発版 v61：イレギュラー受付 大分類UIの可読性調整 */
+/* 開発版 v62：イレギュラー受付 大分類UIの可読性調整 */
 (function() {
   "use strict";
 
@@ -28,7 +28,7 @@
       }
 
       #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice {
-        font-size: 13px !important;
+        font-size: 14px !important;
         font-weight: 800 !important;
         line-height: 1.28 !important;
       }
@@ -39,7 +39,7 @@
       }
       @media (max-width:390px) {
         #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice {
-          font-size: 12px !important;
+          font-size: 13px !important;
         }
       }
     `;
@@ -72,5 +72,5 @@
     subtree: true
   });
 
-  console.info("開発版 v61：大分類名短縮 + 分類名文字サイズ拡大 有効");
+  console.info("開発版 v62：大分類名短縮 + 分類名文字サイズ拡大 有効");
 })();
