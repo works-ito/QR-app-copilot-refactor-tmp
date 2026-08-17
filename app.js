@@ -4891,7 +4891,14 @@ function changePreviousSettings() {
               cache:"no-store",
               body:JSON.stringify({
                 action:"getAppInitialData",
-                initialDataVersion:"status-light-v2"
+                initialDataVersion:"status-light-v2",
+
+                /*
+                 * IndexedDBから索引を復元済みなら、
+                 * GASから3,277件を再送しない。
+                 */
+                includeManagedMaster:
+                  managedMasterItems.length === 0
               })
             }
           );
@@ -4948,9 +4955,20 @@ function changePreviousSettings() {
           result.quantityInspectionBalances
         ) ? result.quantityInspectionBalances : [];
 
-        managedMasterItems = Array.isArray(
-          result.managedMasterItems
-        ) ? result.managedMasterItems : [];
+        /*
+         * GASが索引を返した場合だけ更新する。
+         * 索引省略時はIndexedDBから復元した内容を維持する。
+         */
+        if (
+          result.managedMasterIncluded !== false
+        ) {
+          managedMasterItems =
+            Array.isArray(
+              result.managedMasterItems
+            )
+              ? result.managedMasterItems
+              : [];
+        }
 
         buildAppInitialDataMaps();
         appInitialDataLoaded = true;
