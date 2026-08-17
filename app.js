@@ -1680,6 +1680,105 @@ function changePreviousSettings() {
       });
     }
 
+    /*
+     * 「マスタから選ぶ」で作成したキューを、
+     * 通常QRと同じ一括送信経路へ引き渡す。
+     * GAS送信・在庫検証・送信後処理はsendWizardBatch()へ集約する。
+     */
+    window.sendIrregularMasterPickerBatch =
+      async function(records) {
+        if (!Array.isArray(records) || !records.length) {
+          alert("送信する品目がありません");
+          return false;
+        }
+
+        const imported = [];
+        const existingKeys = new Set(
+          scannedEntries.map(function(record) {
+            return record.key;
+          })
+        );
+
+        for (const selected of records) {
+          if (selected && selected.preview) {
+            alert("UI確認用データは送信できません");
+            return false;
+          }
+
+          const lookupCode =
+            selected.type === "machine"
+              ? selected.managedId
+              : selected.code;
+
+          const details =
+            getScannerItemDetails(lookupCode);
+
+          if (!details) {
+            alert(
+              (lookupCode || "対象品目") +
+              "を最新の初期データから確認できません。\n" +
+              "画面を再読み込みして、もう一度選択してください。"
+            );
+            return false;
+          }
+
+          if (!isScannerModeAllowed(
+            details.managementType,
+            wizardState.mode
+          )) {
+            alert(
+              details.displayName +
+              "は「" + wizardState.modeLabel +
+              "」では送信できません"
+            );
+            return false;
+          }
+
+          const record =
+            buildWizardScanRecord(details);
+
+          if (record.recordType === "quantity") {
+            const quantity = Number(
+              selected.quantity
+            );
+
+            if (
+              !Number.isInteger(quantity) ||
+              quantity < 1
+            ) {
+              alert("数量は1以上の整数で入力してください");
+              return false;
+            }
+
+            record.quantity = quantity;
+          }
+
+          if (
+            existingKeys.has(record.key) ||
+            imported.some(function(item) {
+              return item.key === record.key;
+            })
+          ) {
+            alert(
+              record.displayName +
+              "はすでに追加済みです"
+            );
+            return false;
+          }
+
+          imported.push(record);
+        }
+
+        scannedEntries.push.apply(
+          scannedEntries,
+          imported
+        );
+        renderScannerResults();
+
+        await sendWizardBatch();
+        return true;
+      };
+
     function isScannerModeAllowed(
       managementType,
       mode
