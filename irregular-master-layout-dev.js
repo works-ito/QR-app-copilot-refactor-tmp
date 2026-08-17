@@ -1,4 +1,4 @@
-/* 開発版 v39：イレギュラー受付マスタ選択の一覧密度・戻る位置調整 */
+/* 開発版 v40：イレギュラー受付マスタ選択の一覧密度・画面遷移位置調整 */
 (function() {
   const STYLE_ID = "irregularMasterLayoutDevStyle";
   const ROOT_ID = "irregularMasterPickerDev";
@@ -54,8 +54,12 @@
   function scrollMasterTop() {
     const panel = document.getElementById("irregularMasterPickerPanel");
     if (!panel || panel.hidden) return;
+
     window.setTimeout(function() {
-      panel.scrollIntoView({behavior:"smooth", block:"start"});
+      panel.scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+      });
     }, 40);
   }
 
@@ -75,9 +79,36 @@
     });
   }
 
+  function bindForwardNavigationScroll() {
+    const root = document.getElementById(ROOT_ID);
+    if (!root || root.dataset.masterForwardScrollBound === "1") return;
+
+    root.dataset.masterForwardScrollBound = "1";
+
+    root.addEventListener("click", function(event) {
+      const button = event.target.closest(".irregularMasterChoice");
+      if (!button || !root.contains(button)) return;
+
+      /*
+       * 大分類 → 機種／品目、機種／品目 → 管理番号／数量へ
+       * 進んだときは、必ずマスタ選択パネル上部へ戻す。
+       *
+       * 管理番号そのものを選択したときは、直下の「追加」を
+       * 押しやすくするためスクロールさせない。
+       */
+      if (
+        button.closest(".irregularMasterCategoryGrid") ||
+        button.closest(".irregularMasterItemGrid")
+      ) {
+        scrollMasterTop();
+      }
+    });
+  }
+
   function init() {
     injectStyle();
     bindNavigationScroll();
+    bindForwardNavigationScroll();
   }
 
   if (document.readyState === "loading") {
