@@ -1,4 +1,4 @@
-/* 開発版 v51：zxing-wasm採用後の最小カメラ枠テスト */
+/* 開発版 v52：zxing-wasm採用後の最小カメラ枠テスト */
 (function() {
   "use strict";
 
@@ -8,7 +8,7 @@
    * video自体のカメラ入力解像度は変更しない。
    */
   const style = document.createElement("style");
-  style.id = "compactScannerV51Style";
+  style.id = "compactScannerV52Style";
   style.textContent = `
     .scannerViewport {
       max-width: 430px;
@@ -20,15 +20,15 @@
     }
 
     .scannerFrame {
-      left: 25% !important;
-      top: 22% !important;
-      width: 50% !important;
-      height: 56% !important;
+      left: 30% !important;
+      top: 27.5% !important;
+      width: 40% !important;
+      height: 45% !important;
       border-width: 3px !important;
       border-radius: 12px !important;
     }
   `;
   document.head.appendChild(style);
 
-  console.info("開発版 v51：最小カメラ表示 10:9 + ガイド50% 有効");
+  console.info("開発版 v52：最小カメラ表示 10:9 + ガイド40% 有効");
 })();
