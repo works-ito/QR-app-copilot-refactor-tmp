@@ -2714,6 +2714,17 @@ function changePreviousSettings() {
         }
       });
 
+      const postSendArea =
+        document.getElementById("wizardPostSendArea");
+
+      /*
+       * 写真・追記フローが終わった後は取消ボタンだけを残し、
+       * 期限切れになった時点で空のpost-send領域も閉じる。
+       */
+      if (postSendArea && !wizardPostSendContext) {
+        postSendArea.hidden = remaining <= 0;
+      }
+
       if (remaining > 0) {
         cancelSendExpiryTimer = setTimeout(function() {
           renderCancelSendButton();
@@ -3294,7 +3305,15 @@ function changePreviousSettings() {
       wizardSelectedPhotos = [];
       wizardCurrentSlipInfo = null;
       wizardPendingPhotoSave = null;
-      document.getElementById("wizardPostSendArea").hidden = true;
+      /*
+       * 写真・追記の完了後も、直前送信の取消期限内は
+       * post-send領域を取消ボタンの置き場として残す。
+       */
+      const cancelStillValid =
+        Boolean(lastSuccessfulSend) &&
+        Number(lastSuccessfulSend.expiresAt || 0) > Date.now();
+      document.getElementById("wizardPostSendArea").hidden =
+        !cancelStillValid;
       document.getElementById("wizardRecMemoArea").hidden = true;
       document.getElementById("wizardPhotoArea").hidden = true;
       document.getElementById("wizardPhotoTitleArea").hidden = true;
