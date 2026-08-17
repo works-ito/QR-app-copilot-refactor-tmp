@@ -1,15 +1,34 @@
-/* 開発版 v47：カメラ調整実験を解除し、元の読取挙動へ戻す */
+/* 開発版 v51：zxing-wasm採用後の最小カメラ枠テスト */
 (function() {
   "use strict";
 
   /*
-   * v44〜v46で試した以下の上書きをすべて停止する。
-   * ・カメラ表示アスペクト比の変更
-   * ・中央ガイド枠の変更
-   * ・ズーム値の変更
-   * ・追加のズーム監視／リトライ
-   *
-   * カメラ表示・ガイド・ズームは app.js / styles.css 側の元の実装に任せる。
-   * QR_CODE / DATA_MATRIX のZXing設定には触れない。
+   * 読取ロジック・ズームには触れず、表示領域だけを小さくする。
+   * zxing-wasm補助が小さい表示でもData Matrixを安定して拾えるか実機確認する。
+   * video自体のカメラ入力解像度は変更しない。
    */
+  const style = document.createElement("style");
+  style.id = "compactScannerV51Style";
+  style.textContent = `
+    .scannerViewport {
+      max-width: 430px;
+    }
+
+    .scannerVideo {
+      aspect-ratio: 10 / 9 !important;
+      object-fit: cover !important;
+    }
+
+    .scannerFrame {
+      left: 25% !important;
+      top: 22% !important;
+      width: 50% !important;
+      height: 56% !important;
+      border-width: 3px !important;
+      border-radius: 12px !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  console.info("開発版 v51：最小カメラ表示 10:9 + ガイド50% 有効");
 })();
