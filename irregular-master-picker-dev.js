@@ -1,5 +1,5 @@
 /*
- * イレギュラー受付：マスタ選択UI（開発版 v55）
+ * イレギュラー受付：マスタ選択UI（開発版 v57）
  *
  * GAS・既存送信処理は変更しない。
  * 管理番号候補は「簡易個体 → 個体 → REC → 軽量マスタ」の順で現在状態を優先し、
@@ -185,14 +185,14 @@
       #${ROOT_ID} .irregularMasterSelectedCategory{display:inline-flex;align-items:center;max-width:70%;min-height:28px;padding:5px 9px;border-radius:999px;background:#eaf2ff;color:#1d4ed8;font-size:12px;font-weight:800;line-height:1.2}
       #${ROOT_ID} .irregularMasterSelectedCategory:empty{display:none}
       #${ROOT_ID} .irregularMasterHint{margin:0 0 10px;font-size:12px;line-height:1.5;color:#64748b}
-      #${ROOT_ID} .irregularMasterCategoryGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:4px}
-      #${ROOT_ID} .irregularMasterItemGrid{display:grid;grid-template-columns:1fr;gap:4px}
+      #${ROOT_ID} .irregularMasterCategoryGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px}
+      #${ROOT_ID} .irregularMasterItemGrid{display:grid;grid-template-columns:1fr;gap:2px}
       #${ROOT_ID} .irregularMasterIdGrid{display:grid;grid-template-columns:1fr;gap:8px}
       #${ROOT_ID} [data-master-step="category"] .irregularMasterHint,#${ROOT_ID} [data-master-step="item"] .irregularMasterHint{margin-bottom:7px}
       #${ROOT_ID} .irregularMasterChoice{width:100%;min-height:52px;padding:10px 11px;text-align:left;border:1px solid #cbd5e1;border-radius:11px;background:#fff;color:#0f172a;font-size:14px;font-weight:750;line-height:1.3}
-      #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice{min-height:43px;padding:4px 6px;text-align:center;font-size:13px}
-      #${ROOT_ID} .irregularMasterItemGrid .irregularMasterChoice{min-height:43px;padding:6px 8px;font-size:13px}
-      #${ROOT_ID} .irregularMasterChoice small{display:block;margin-top:3px;color:#64748b;font-size:11px;font-weight:600;line-height:1.35}
+      #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice{min-height:36px;padding:2px 5px;text-align:center;font-size:13px}
+      #${ROOT_ID} .irregularMasterItemGrid .irregularMasterChoice{min-height:36px;padding:4px 8px;font-size:13px}
+      #${ROOT_ID} .irregularMasterChoice small{display:block;margin-top:1px;color:#64748b;font-size:11px;font-weight:600;line-height:1.35}
       #${ROOT_ID} .irregularMasterChoice.isSelected{border-color:#2563eb;background:#eff6ff;color:#1d4ed8;box-shadow:inset 0 0 0 1px #2563eb}
       #${ROOT_ID} .irregularMasterBack{width:100%;margin-top:10px}
       #${ROOT_ID} .irregularMasterNotice{margin:10px 0;padding:10px 11px;border-radius:10px;background:#fff7ed;color:#9a3412;font-size:12px;line-height:1.55}
@@ -222,8 +222,8 @@
       #${ROOT_ID} .irregularMasterUiOnly{margin-top:7px;font-size:11px;line-height:1.45;color:#64748b;text-align:center}
       @media(max-width:390px){
         #${ROOT_ID} .irregularMasterPanel{padding:10px}
-        #${ROOT_ID} .irregularMasterCategoryGrid{gap:4px}
-        #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice{min-height:42px;font-size:12px}
+        #${ROOT_ID} .irregularMasterCategoryGrid{gap:2px}
+        #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice{min-height:35px;font-size:12px}
       }
     `;
     document.head.appendChild(style);
