@@ -1,5 +1,5 @@
 /*
- * イレギュラー受付：マスタ選択UI（開発版 v41）
+ * イレギュラー受付：マスタ選択UI（開発版 v45）
  *
  * GAS・既存送信処理は変更しない。
  * 管理番号候補は「簡易個体 → 個体 → REC → 軽量マスタ」の順で現在状態を優先し、
@@ -609,8 +609,58 @@
     if (targetPanel) targetPanel.scrollIntoView({behavior:"smooth",block:"start"});
   }
 
-  function showBatchUiOnlyMessage() {
-    alert("今回はUI確認までです。まとめて送信のGAS接続は次工程で実装します。");
+  async function sendPickerBatch() {
+    if (!pickerState.queue.length) {
+      alert("送信する品目がありません");
+      return;
+    }
+
+    if (
+      typeof window.sendIrregularMasterPickerBatch !==
+      "function"
+    ) {
+      alert(
+        "送信機能の読み込みが完了していません。画面を再読み込みしてください。"
+      );
+      return;
+    }
+
+    const button =
+      document.getElementById(
+        "irregularMasterBatchSend"
+      );
+
+    if (button) {
+      button.disabled = true;
+      button.textContent = "送信中…";
+    }
+
+    try {
+      const accepted =
+        await window.sendIrregularMasterPickerBatch(
+          pickerState.queue.map(function(record) {
+            return Object.assign({}, record);
+          })
+        );
+
+      if (accepted) {
+        pickerState.queue = [];
+        renderQueue();
+        closePicker();
+      }
+    } catch (error) {
+      alert(
+        "送信処理を開始できませんでした\n" +
+        (error && error.message
+          ? error.message
+          : String(error))
+      );
+    } finally {
+      if (button) {
+        button.disabled = false;
+        button.textContent = "まとめて送信";
+      }
+    }
   }
 
   function injectUi() {
@@ -659,7 +709,7 @@
           <div class="irregularMasterQueueHeader"><h4 class="irregularMasterQueueTitle">追加済み一覧</h4><span id="irregularMasterQueueCount" class="irregularMasterQueueCount">0件</span></div>
           <div id="irregularMasterQueueList" class="irregularMasterQueueList"></div>
           <div class="irregularMasterQueueActions"><button type="button" id="irregularMasterNextItem" class="secondaryButton irregularMasterNextItem">次の商品を追加</button><button type="button" id="irregularMasterBatchSend" class="nextButton irregularMasterBatchSend">まとめて送信</button></div>
-          <div class="irregularMasterUiOnly">開発版UI確認中：送信処理はまだ接続していません</div>
+          <div class="irregularMasterUiOnly">通常QRと同じ送信・在庫確認・写真工程で処理します</div>
         </section>
         <button type="button" id="irregularMasterPickerCloseButton" class="secondaryButton irregularMasterBack">マスタ選択を閉じる</button>
       </div>`;
@@ -676,7 +726,7 @@
     document.getElementById("irregularMasterAddMachine").addEventListener("click",addPendingMachine);
     document.getElementById("irregularMasterAddQuantity").addEventListener("click",addPendingQuantity);
     document.getElementById("irregularMasterNextItem").addEventListener("click",resetPickerForNextItem);
-    document.getElementById("irregularMasterBatchSend").addEventListener("click",showBatchUiOnlyMessage);
+    document.getElementById("irregularMasterBatchSend").addEventListener("click",sendPickerBatch);
   }
 
   function watchIrregularArea() {
