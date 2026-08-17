@@ -82,10 +82,63 @@
 
   function getStockFromFutureMap(code, location) {
     try {
-      if (typeof window.quantityStockByLocation !== "object" || !window.quantityStockByLocation) return null;
-      const byCode = window.quantityStockByLocation[code] || window.quantityStockByLocation[normalize(code).toLowerCase()];
-      if (!byCode || typeof byCode !== "object") return null;
-      return numberOrNull(byCode[location]);
+      if (
+        typeof window.quantityStockByLocation === "object" &&
+        window.quantityStockByLocation
+      ) {
+        const byCode =
+          window.quantityStockByLocation[code] ||
+          window.quantityStockByLocation[
+            normalize(code).toLowerCase()
+          ];
+
+        if (byCode && typeof byCode === "object") {
+          const mapped =
+            numberOrNull(
+              byCode[location]
+            );
+
+          if (mapped !== null) {
+            return mapped;
+          }
+        }
+      }
+
+      /*
+       * 公開Mapの生成タイミングに左右されないよう、
+       * app.jsが保持する初期データ配列も直接参照する。
+       */
+      if (
+        typeof quantityStockBalances !== "undefined" &&
+        Array.isArray(quantityStockBalances)
+      ) {
+        const normalizedCode =
+          normalize(code).toLowerCase();
+
+        const found =
+          quantityStockBalances.find(
+            function(item) {
+              return (
+                normalize(
+                  item && item.itemCode
+                ).toLowerCase() ===
+                  normalizedCode &&
+                normalize(
+                  item && item.location
+                ) === location
+              );
+            }
+          );
+
+        if (found) {
+          return numberOrNull(
+            found.currentStock
+          );
+        }
+      }
+
+      return null;
+
     } catch (error) {
       return null;
     }
