@@ -1775,8 +1775,38 @@ function changePreviousSettings() {
         );
         renderScannerResults();
 
-        await sendWizardBatch();
-        return true;
+        return await sendWizardBatch({
+          onAccepted:function() {
+            const irregularArea =
+              document.getElementById(
+                "wizardIrregularArea"
+              );
+            const postSendArea =
+              document.getElementById(
+                "wizardPostSendArea"
+              );
+
+            if (irregularArea) {
+              irregularArea.hidden = true;
+            }
+            if (postSendArea) {
+              postSendArea.hidden = true;
+            }
+
+            setTimeout(function() {
+              const status =
+                document.getElementById(
+                  "wizardSendStatus"
+                );
+              if (status) {
+                status.scrollIntoView({
+                  behavior:"smooth",
+                  block:"center"
+                });
+              }
+            }, 50);
+          }
+        });
       };
 
     function isScannerModeAllowed(
@@ -2635,6 +2665,7 @@ function changePreviousSettings() {
     function renderCancelSendButton() {
       const buttons = [
         document.getElementById("wizardCancelSendButton"),
+        document.getElementById("wizardPostSendCancelButton"),
         document.getElementById("quantityInspectionCancelSendButton")
       ].filter(Boolean);
       if (buttons.length === 0) return;
@@ -3261,11 +3292,24 @@ function changePreviousSettings() {
       };
     }
 
+    function hideWizardPostSendCards() {
+      [
+        "wizardIrregularArea",
+        "wizardRecMemoArea",
+        "wizardPhotoArea",
+        "wizardPhotoTitleArea"
+      ].forEach(function(id) {
+        const element = document.getElementById(id);
+        if (element) element.hidden = true;
+      });
+    }
+
     async function beginWizardPostSendFlow(context) {
       if (!context || !context.records.length) return;
       wizardPostSendContext = context;
       await stopReadOnlyScanner();
       scannerBusy = true;
+      hideWizardPostSendCards();
       document.getElementById("wizardPostSendArea").hidden = false;
 
       if (["校正中", "校正完了", "交換完了"].includes(context.mode)) {
@@ -3855,15 +3899,20 @@ function changePreviousSettings() {
       }
     }
 
-    async function sendWizardBatch() {
-      if (wizardSendBusy) return;
+    async function sendWizardBatch(options) {
+      const sendOptions =
+        options && typeof options === "object"
+          ? options
+          : {};
+
+      if (wizardSendBusy) return false;
 
       const records =
         getWizardPreparedBatchRecords();
 
       if (!records.length) {
         alert("送信するQRがありません");
-        return;
+        return false;
       }
 
       const invalidQuantity = records.some(
@@ -3880,11 +3929,11 @@ function changePreviousSettings() {
 
       if (invalidQuantity) {
         alert("数量が未入力の品目があります");
-        return;
+        return false;
       }
 
       if (!validateWizardRecSettings()) {
-        return;
+        return false;
       }
 
       if (
@@ -3892,7 +3941,7 @@ function changePreviousSettings() {
         !wizardReturnMemoConfirmed
       ) {
         openWizardReturnMemoArea();
-        return;
+        return false;
       }
 
       if (!confirm(
@@ -3900,7 +3949,14 @@ function changePreviousSettings() {
         records.length +
         "件まとめて送信します。よろしいですか？"
       )) {
-        return;
+        return false;
+      }
+
+      if (
+        typeof sendOptions.onAccepted ===
+        "function"
+      ) {
+        sendOptions.onAccepted();
       }
 
       wizardSendBusy = true;
@@ -4031,7 +4087,7 @@ function changePreviousSettings() {
           if (successfulIndexes.length > 0) {
             await beginWizardPostSendFlow(postSendContext);
           }
-          return;
+          return true;
         }
 
         setWizardSendStatus(
@@ -4080,6 +4136,8 @@ function changePreviousSettings() {
                 : "読取分をまとめて送信"
             );
       }
+
+      return true;
     }
 
     async function handleReadOnlyDecoded(text) {
@@ -5761,6 +5819,10 @@ document
 
 document
   .getElementById("wizardCancelSendButton")
+  .addEventListener("click", cancelLastSuccessfulSend);
+
+document
+  .getElementById("wizardPostSendCancelButton")
   .addEventListener("click", cancelLastSuccessfulSend);
 
 document.getElementById("quantityInspectionAddButton")
