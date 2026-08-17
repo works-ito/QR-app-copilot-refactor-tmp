@@ -26,6 +26,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let recItems = [];
     let quantityItems = [];
     let quantityInspectionBalances = [];
+    let quantityStockBalances = [];
     let managedMasterItems = [];
     let managedMasterRevision = "";
 
@@ -33,6 +34,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let simpleItemMap = new Map();
     let recItemMap = new Map();
     let quantityItemMap = new Map();
+    let quantityStockMap = new Map();
     let managedMasterItemMap = new Map();
 
     let scannerCodeReader = null;
@@ -1914,11 +1916,29 @@ function changePreviousSettings() {
       ).innerText =
         record.displayName || record.itemCode;
 
+      const stockLocation =
+        String(
+          record.location ||
+          wizardState.location ||
+          ""
+        ).trim();
+
+      const currentStock =
+        getQuantityCurrentStock(
+          record.itemCode,
+          stockLocation
+        );
+
       document.getElementById(
         "scannerQuantityInfo"
       ).innerText =
         "品目コード：" + record.itemCode +
-        "\n区分：" + (record.category || "未設定");
+        "\n区分：" + (record.category || "未設定") +
+        "\n現在庫（" +
+        (stockLocation || "拠点未設定") +
+        "）：" +
+        currentStock +
+        (record.unit || "");
 
       document.getElementById(
         "scannerQuantityUnit"
@@ -4552,6 +4572,11 @@ function changePreviousSettings() {
         ]
       );
 
+      quantityStockMap =
+        createQuantityStockMap(
+          quantityStockBalances
+        );
+
       managedMasterItemMap =
         createManagedItemMap(
           managedMasterItems
@@ -4699,6 +4724,64 @@ function changePreviousSettings() {
       return quantityItemMap.get(key) || null;
     }
 
+    function makeQuantityStockKeyLocal(
+      itemCode,
+      location
+    ) {
+      return (
+        normalizeLookupKey(itemCode) +
+        "||" +
+        String(location || "").trim()
+      );
+    }
+
+    function createQuantityStockMap(items) {
+      const map = new Map();
+
+      (Array.isArray(items) ? items : [])
+        .forEach(function(item) {
+          const itemCode =
+            String(
+              item.itemCode || ""
+            ).trim();
+
+          const location =
+            String(
+              item.location || ""
+            ).trim();
+
+          if (!itemCode || !location) {
+            return;
+          }
+
+          map.set(
+            makeQuantityStockKeyLocal(
+              itemCode,
+              location
+            ),
+            Number(
+              item.currentStock || 0
+            )
+          );
+        });
+
+      return map;
+    }
+
+    function getQuantityCurrentStock(
+      itemCode,
+      location
+    ) {
+      return Number(
+        quantityStockMap.get(
+          makeQuantityStockKeyLocal(
+            itemCode,
+            location
+          )
+        ) || 0
+      );
+    }
+
     function openInventoryDb() {
       return new Promise(
         function(resolve, reject) {
@@ -4747,6 +4830,7 @@ function changePreviousSettings() {
         recItems:recItems,
         quantityItems:quantityItems,
         quantityInspectionBalances:quantityInspectionBalances,
+        quantityStockBalances:quantityStockBalances,
         managedMasterItems:managedMasterItems,
         managedMasterRevision:managedMasterRevision
       };
@@ -4835,6 +4919,10 @@ function changePreviousSettings() {
         quantityInspectionBalances = Array.isArray(
           cache.quantityInspectionBalances
         ) ? cache.quantityInspectionBalances : [];
+
+        quantityStockBalances = Array.isArray(
+          cache.quantityStockBalances
+        ) ? cache.quantityStockBalances : [];
 
         managedMasterItems = Array.isArray(
           cache.managedMasterItems
@@ -4967,6 +5055,10 @@ function changePreviousSettings() {
         quantityInspectionBalances = Array.isArray(
           result.quantityInspectionBalances
         ) ? result.quantityInspectionBalances : [];
+
+        quantityStockBalances = Array.isArray(
+          result.quantityStockBalances
+        ) ? result.quantityStockBalances : [];
 
         const responseManagedMasterRevision =
           String(
