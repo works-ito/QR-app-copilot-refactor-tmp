@@ -1,9 +1,9 @@
-/* 開発版 v54：イレギュラー受付 大分類UIの可読性調整 */
+/* 開発版 v55：イレギュラー受付 大分類UIの可読性調整 */
 (function() {
   "use strict";
 
   const ROOT_ID = "irregularMasterPickerDev";
-  const STYLE_ID = "irregularCategoryUiTuningV54";
+  const STYLE_ID = "irregularCategoryUiTuningV55";
 
   const DISPLAY_LABELS = {
     "ハウス関連商品": "ハウス関連",
@@ -16,7 +16,7 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice {
-        font-size: 15px !important;
+        font-size: 13px !important;
         font-weight: 800 !important;
         line-height: 1.28 !important;
       }
@@ -27,7 +27,7 @@
       }
       @media (max-width:390px) {
         #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice {
-          font-size: 14px !important;
+          font-size: 12px !important;
         }
       }
     `;
@@ -60,5 +60,5 @@
     subtree: true
   });
 
-  console.info("開発版 v54：大分類名短縮 + 分類名文字サイズ拡大 有効");
+  console.info("開発版 v55：大分類名短縮 + 分類名文字サイズ拡大 有効");
 })();
