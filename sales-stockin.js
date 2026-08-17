@@ -29,7 +29,7 @@
       return loadScript("./compact-scanner-dev.js?v=53");
     })
     .then(function() {
-      return loadScript("./irregular-master-picker-dev.js?v=46");
+      return loadScript("./irregular-master-picker-dev.js?v=50");
     })
     .then(function() {
       return loadScript("./irregular-category-ui-tuning-dev.js?v=54");
