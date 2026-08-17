@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v47 bootstrap */
+/* 販売品入庫受付 v49 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -12,7 +12,10 @@
     });
   }
 
-  loadScript("./sales-stockin-core.js?v=33")
+  loadScript("./scanner-try-harder-dev.js?v=49")
+    .then(function() {
+      return loadScript("./sales-stockin-core.js?v=33");
+    })
     .then(function() {
       return loadScript("./sales-stockin-scan-enhancements.js?v=33");
     })
