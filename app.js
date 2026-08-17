@@ -2590,7 +2590,33 @@ function changePreviousSettings() {
         if (index >= 0 && index < recordCount) indexes.push(index);
       });
 
-      return Array.from(new Set(indexes));
+      const uniqueIndexes =
+        Array.from(new Set(indexes));
+
+      /*
+       * 数量管理の一括処理では、GASが全体成功を返しても
+       * results明細を返さない場合がある。
+       *
+       * 全体ok・失敗0件・成功件数が送信件数と一致する場合だけ、
+       * 全件成功として補完する。
+       * 部分失敗や結果不明では補完しない。
+       */
+      if (
+        uniqueIndexes.length === 0 &&
+        result &&
+        result.ok === true &&
+        Number(result.failedCount || 0) === 0 &&
+        Number(result.successCount || 0) === recordCount
+      ) {
+        return Array.from(
+          {length:recordCount},
+          function(_, index) {
+            return index;
+          }
+        );
+      }
+
+      return uniqueIndexes;
     }
 
     function captureLocalState(record) {
