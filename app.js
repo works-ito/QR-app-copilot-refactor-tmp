@@ -2687,12 +2687,16 @@ function changePreviousSettings() {
 
         if (remaining > 0) {
           button.innerText =
-            remaining < 60000
-              ? "直前送信を取消（残り1分未満）"
+            remainingMinutes >= 5
+              ? "直前送信を取消（5分間有効）"
               : (
-                  "直前送信を取消（残り約" +
-                  remainingMinutes +
-                  "分）"
+                  remaining < 60000
+                    ? "直前送信を取消（有効時間：1分未満）"
+                    : (
+                        "直前送信を取消（有効時間：約" +
+                        remainingMinutes +
+                        "分）"
+                      )
                 );
         } else {
           button.innerText =
