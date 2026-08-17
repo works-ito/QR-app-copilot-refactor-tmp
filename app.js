@@ -3011,9 +3011,28 @@ function changePreviousSettings() {
           document.getElementById("wizardIrregularQuantityUnit");
         const enteredQuantity = Number(quantityInput.value);
 
+        const stockLocation =
+          String(
+            base.location ||
+            wizardState.location ||
+            ""
+          ).trim();
+
+        const currentStock =
+          getQuantityCurrentStock(
+            itemCode,
+            stockLocation
+          );
+
         quantityBox.hidden = false;
         quantityUnit.innerText =
-          displayName + (unit ? " ／ 単位：" + unit : "");
+          displayName +
+          (unit ? " ／ 単位：" + unit : "") +
+          " ／ 現在庫（" +
+          (stockLocation || "拠点未設定") +
+          "）：" +
+          currentStock +
+          unit;
 
         if (
           !Number.isInteger(enteredQuantity) ||
