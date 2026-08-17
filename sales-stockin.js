@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v39 bootstrap */
+/* 販売品入庫受付 v40 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -29,7 +29,7 @@
       return loadScript("./irregular-master-picker-dev.js?v=35");
     })
     .then(function() {
-      return loadScript("./irregular-master-layout-dev.js?v=39");
+      return loadScript("./irregular-master-layout-dev.js?v=40");
     })
     .then(function() {
       return loadScript("./irregular-registration-guard-dev.js?v=36");
