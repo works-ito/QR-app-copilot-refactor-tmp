@@ -2582,7 +2582,16 @@ function changePreviousSettings() {
       const indexes = [];
 
       results.forEach(function(item, position) {
-        if (!item || !item.ok) return;
+        const itemSucceeded =
+          Boolean(
+            item &&
+            (
+              item.ok === true ||
+              item.success === true
+            )
+          );
+
+        if (!itemSucceeded) return;
         const suppliedIndex = Number(item.index);
         const index = Number.isInteger(suppliedIndex)
           ? suppliedIndex
@@ -2606,7 +2615,13 @@ function changePreviousSettings() {
         result &&
         result.ok === true &&
         Number(result.failedCount || 0) === 0 &&
-        Number(result.successCount || 0) === recordCount
+        (
+          Number(result.successCount || 0) === recordCount ||
+          (
+            results.length === 0 &&
+            Number(result.successCount || 0) === 0
+          )
+        )
       ) {
         return Array.from(
           {length:recordCount},
