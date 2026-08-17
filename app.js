@@ -2721,7 +2721,25 @@ function changePreviousSettings() {
        * 写真・追記フローが終わった後は取消ボタンだけを残し、
        * 期限切れになった時点で空のpost-send領域も閉じる。
        */
-      if (postSendArea && !wizardPostSendContext) {
+      const hasVisiblePostSendCard = [
+        "wizardIrregularArea",
+        "wizardRecMemoArea",
+        "wizardPhotoArea",
+        "wizardPhotoTitleArea"
+      ].some(function(id) {
+        const element = document.getElementById(id);
+        return Boolean(element && element.hidden === false);
+      });
+
+      /*
+       * マスタ選択・写真・追記を操作中は、在庫データ更新完了時の
+       * 取消ボタン再描画で親領域を閉じない。
+       */
+      if (
+        postSendArea &&
+        !wizardPostSendContext &&
+        !hasVisiblePostSendCard
+      ) {
         postSendArea.hidden = remaining <= 0;
       }
 
