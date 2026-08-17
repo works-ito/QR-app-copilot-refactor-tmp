@@ -1,11 +1,9 @@
 /*
- * イレギュラー受付：登録可否共通ガード（開発版 v36）
+ * イレギュラー受付：登録可否共通ガード（開発版 v41）
  *
- * 目的：
- * - マスタ選択／直接入力／将来のQR経路で共通利用できる登録可否判定の入口を用意する。
- * - GASは変更しない。
- * - 既存app.jsの状態遷移判定 validateStateTransition() を優先して再利用する。
- * - 現段階ではマスタ選択UIの「追加」直前だけにガードを接続する。
+ * GASは変更しない。
+ * QR・直接入力・マスタ選択で共通利用できる登録可否判定の入口を維持する。
+ * マスタ選択では複数選択した管理番号を1件ずつ同じ判定へ通す。
  */
 (function() {
   "use strict";
@@ -24,46 +22,30 @@
     for (const key of keys) {
       if (Object.prototype.hasOwnProperty.call(item, key)) {
         const found = item[key];
-        if (found !== undefined && found !== null && found !== "") {
-          return normalize(found);
-        }
+        if (found !== undefined && found !== null && found !== "") return normalize(found);
       }
     }
     return "";
   }
 
   function managedIdOf(item) {
-    return getFirstValue(item, [
-      "管理ID",
-      "管理番号",
-      "managedId",
-      "managementId",
-      "machineId",
-      "id"
-    ]);
+    return getFirstValue(item,["管理ID","管理番号","managedId","managementId","machineId","id"]);
   }
 
   function stateOf(item) {
-    return getFirstValue(item, [
-      "現在状態",
-      "最新状態",
-      "状態",
-      "管理状態",
-      "作業区分",
-      "status",
-      "currentStatus"
-    ]);
+    return getFirstValue(item,["現在状態","最新状態","状態","管理状態","作業区分","status","currentStatus"]);
   }
 
   function allManagedSourceItems() {
     const rows = [];
     try {
-      if (typeof individualItems !== "undefined" && Array.isArray(individualItems)) rows.push(...individualItems);
+      /* 現行の照合優先順位：簡易個体 → 個体 → REC → 軽量マスタ */
       if (typeof simpleItems !== "undefined" && Array.isArray(simpleItems)) rows.push(...simpleItems);
+      if (typeof individualItems !== "undefined" && Array.isArray(individualItems)) rows.push(...individualItems);
       if (typeof recItems !== "undefined" && Array.isArray(recItems)) rows.push(...recItems);
       if (typeof managedMasterItems !== "undefined" && Array.isArray(managedMasterItems)) rows.push(...managedMasterItems);
     } catch (error) {
-      console.warn("開発版ガード：現在状態データの参照に失敗しました", error);
+      console.warn("開発版ガード：現在状態データの参照に失敗しました",error);
     }
     return rows;
   }
@@ -71,9 +53,7 @@
   function findManagedItem(managedId) {
     const target = normalize(managedId);
     if (!target) return null;
-    return allManagedSourceItems().find(function(item) {
-      return managedIdOf(item) === target;
-    }) || null;
+    return allManagedSourceItems().find(function(item){return managedIdOf(item) === target}) || null;
   }
 
   function queueContainsManagedId(managedId) {
@@ -81,98 +61,64 @@
     if (!target) return false;
     const list = document.getElementById("irregularMasterQueueList");
     if (!list) return false;
-    return Array.from(list.querySelectorAll(".irregularMasterQueueMain")).some(function(el) {
+    return Array.from(list.querySelectorAll(".irregularMasterQueueMain")).some(function(el){
       return normalize(el.textContent) === target;
     });
   }
 
-  function recentWorkBlocked(managedId, mode) {
+  function recentWorkBlocked(managedId,mode) {
     try {
-      if (typeof isRecentSuccessfulWork === "function") {
-        return Boolean(isRecentSuccessfulWork(managedId, mode));
-      }
+      if (typeof isRecentSuccessfulWork === "function") return Boolean(isRecentSuccessfulWork(managedId,mode));
     } catch (error) {
-      console.warn("開発版ガード：直近送信判定を参照できませんでした", error);
+      console.warn("開発版ガード：直近送信判定を参照できませんでした",error);
     }
     return false;
   }
 
-  function validateTransition(currentState, mode) {
+  function validateTransition(currentState,mode) {
     try {
-      if (typeof validateStateTransition === "function") {
-        return validateStateTransition(currentState, mode);
-      }
+      if (typeof validateStateTransition === "function") return validateStateTransition(currentState,mode);
     } catch (error) {
-      console.warn("開発版ガード：既存状態遷移判定を参照できませんでした", error);
+      console.warn("開発版ガード：既存状態遷移判定を参照できませんでした",error);
     }
-
-    return {
-      ok:true,
-      warning:true,
-      message:"既存の状態遷移判定を取得できないため、開発版では判定を保留しました。"
-    };
+    return {ok:true,warning:true,message:"既存の状態遷移判定を取得できないため、開発版では判定を保留しました。"};
   }
 
-  /*
-   * 将来の共通入口。
-   * record例：
-   * { type:"machine", managedId:"ABC-0001" }
-   * { type:"quantity", code:"ITEM001", quantity:2 }
-   */
-  function canAddIrregularItem(record, options) {
+  function canAddIrregularItem(record,options) {
     const data = record || {};
     const config = options || {};
     const mode = normalize(config.mode || currentMode());
 
     if (data.type === "quantity") {
-      return {
-        ok:true,
-        warning:false,
-        code:"QUANTITY_OK",
-        message:""
-      };
+      return {ok:true,warning:false,code:"QUANTITY_OK",message:""};
     }
 
     const managedId = normalize(data.managedId);
     if (!managedId) {
-      return {
-        ok:false,
-        warning:false,
-        code:"MANAGED_ID_REQUIRED",
-        message:"管理番号を選択してください。"
-      };
+      return {ok:false,warning:false,code:"MANAGED_ID_REQUIRED",message:"管理番号を選択してください。"};
     }
 
     if (!config.skipQueueCheck && queueContainsManagedId(managedId)) {
-      return {
-        ok:false,
-        warning:false,
-        code:"DUPLICATE_IN_QUEUE",
-        message:"この管理番号はすでに追加済みです。"
-      };
+      return {ok:false,warning:false,code:"DUPLICATE_IN_QUEUE",message:managedId+" はすでに追加済みです。"};
     }
 
-    if (mode && recentWorkBlocked(managedId, mode)) {
+    if (mode && recentWorkBlocked(managedId,mode)) {
       return {
-        ok:false,
-        warning:false,
-        code:"RECENT_SUCCESS_DUPLICATE",
-        message:"この機械は直近に同じ作業で送信済みです。\n二重登録防止のため追加できません。"
+        ok:false,warning:false,code:"RECENT_SUCCESS_DUPLICATE",
+        message:managedId+" は直近に同じ作業で送信済みです。\n二重登録防止のため追加できません。"
       };
     }
 
     const item = findManagedItem(managedId);
     if (!item) {
       return {
-        ok:true,
-        warning:true,
-        code:"STATE_NOT_FOUND",
-        message:"現在状態を取得できませんでした。GAS接続後に最新状態判定へ置き換わります。"
+        ok:true,warning:true,code:"STATE_NOT_FOUND",
+        message:managedId+" の現在状態を取得できませんでした。"
       };
     }
 
     const currentState = stateOf(item);
-    const transition = validateTransition(currentState, mode);
+    const transition = validateTransition(currentState,mode);
 
     return {
       ok:Boolean(transition && transition.ok),
@@ -185,22 +131,29 @@
     };
   }
 
-  /* 将来、QR・直接入力側からもこの同じ入口を呼べるよう公開する。 */
   window.canAddIrregularItem = canAddIrregularItem;
 
-  function selectedManagedIdFromUi() {
-    const el = document.getElementById("irregularMasterPendingMain");
-    return normalize(el && el.textContent);
+  function selectedManagedIdsFromUi(button) {
+    if (!button) return [];
+    try {
+      const parsed = JSON.parse(button.dataset.managedIds || "[]");
+      if (Array.isArray(parsed)) return parsed.map(normalize).filter(Boolean);
+    } catch (error) {
+      console.warn("開発版ガード：選択管理番号の解析に失敗しました",error);
+    }
+    return [];
   }
 
   function showBlocked(result) {
     alert(result.message || "この内容は追加できません。");
   }
 
-  function showWarning(result) {
+  function showWarnings(results) {
+    const messages = results.map(function(result){return result.message}).filter(Boolean);
+    if (!messages.length) return;
     const notice = document.getElementById("irregularMasterNotice");
-    if (!notice || !result.message) return;
-    notice.textContent = result.message;
+    if (!notice) return;
+    notice.textContent = messages.join("\n");
     notice.hidden = false;
   }
 
@@ -210,29 +163,29 @@
       : null;
     if (!button) return;
 
-    const managedId = selectedManagedIdFromUi();
-    const result = canAddIrregularItem({
-      type:"machine",
-      managedId:managedId
-    });
-
-    if (!result.ok) {
+    const ids = selectedManagedIdsFromUi(button);
+    if (!ids.length) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      showBlocked(result);
+      showBlocked({message:"管理番号を選択してください。"});
       return;
     }
 
-    if (result.warning) {
-      showWarning(result);
+    const results = ids.map(function(managedId){
+      return canAddIrregularItem({type:"machine",managedId:managedId});
+    });
+
+    const blocked = results.find(function(result){return !result.ok});
+    if (blocked) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      showBlocked(blocked);
+      return;
     }
+
+    showWarnings(results.filter(function(result){return result.warning}));
   }
 
-  /*
-   * captureで既存の「追加」処理より先に判定する。
-   * OKなら既存処理へそのまま通し、NGだけ止める。
-   */
-  document.addEventListener("click", guardMachineAdd, true);
-
-  console.info("開発版：イレギュラー受付 共通登録ガード v36 読込完了");
+  document.addEventListener("click",guardMachineAdd,true);
+  console.info("開発版：イレギュラー受付 共通登録ガード v41 読込完了");
 })();
