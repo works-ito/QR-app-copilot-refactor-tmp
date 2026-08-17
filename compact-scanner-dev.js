@@ -1,9 +1,9 @@
-/* 開発版 v45：Data Matrix向けに表示サイズとズーム適用を再調整 */
+/* 開発版 v46：Data Matrix向けに表示サイズ・ズーム・中央ガイドを再調整 */
 (function() {
   "use strict";
 
   const STYLE_ID = "compactScannerDevStyle";
-  const ZOOM_TARGET = 1.8;
+  const ZOOM_TARGET = 1.6;
   const RETRY_DELAYS = [250, 500, 900, 1400, 2200, 3200];
   let zoomTimers = [];
 
@@ -14,8 +14,9 @@
     style.id = STYLE_ID;
     style.textContent = `
       /*
-       * 10:9ではData Matrixの読取余裕が少なかったため、
-       * 本番3:4よりコンパクト・10:9より縦を残す1:1へ調整する。
+       * 本番3:4よりコンパクトな1:1表示を維持しつつ、
+       * Data Matrixを中央へ合わせやすい視覚ガイドを復活する。
+       * ガイド枠は認識範囲を制限しない。
        */
       #cameraPreview .scannerViewport {
         width:100%;
@@ -31,20 +32,20 @@
         background:#000;
       }
 
-      /* 成功時のみ緑枠。常時の位置合わせ枠は表示しない。 */
       #cameraPreview .scannerFrame {
-        left:0;
-        top:0;
-        width:100%;
-        height:100%;
-        border:0;
+        left:20%;
+        top:20%;
+        width:60%;
+        height:60%;
+        border:3px solid rgba(255,255,255,.82);
         border-radius:14px;
-        filter:none;
+        filter:drop-shadow(0 0 3px rgba(0,0,0,.9));
+        box-sizing:border-box;
       }
 
       #cameraPreview .scannerFrame.isSuccess {
         border:5px solid #00e676;
-        box-shadow:inset 0 0 18px rgba(0,230,118,.75), 0 0 12px rgba(0,230,118,.5);
+        box-shadow:0 0 18px rgba(0,230,118,.9);
       }
 
       @media (max-width:390px) and (max-height:700px) {
@@ -144,7 +145,6 @@
     });
   }
 
-  /* カメラ開始ボタン操作後に、映像トラック生成を待ちながら再試行する。 */
   document.addEventListener("click", function(event) {
     const target = event.target && event.target.closest
       ? event.target.closest("#startScannerButton, #startReadButton, [data-start-scanner]")
@@ -152,7 +152,6 @@
     if (target) scheduleReliableZoom();
   }, true);
 
-  /* ボタンID差異や自動再開にも対応するため、映像srcObject出現も監視する。 */
   function watchVideoStream() {
     const video = document.getElementById("scannerVideo");
     if (!video) return;
