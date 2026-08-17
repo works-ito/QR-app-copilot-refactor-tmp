@@ -27,7 +27,7 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
     let quantityItems = [];
     let quantityInspectionBalances = [];
     let managedMasterItems = [];
-    let managedMasterBackgroundRefreshRunning = false;
+    let managedMasterRevision = "";
 
     let individualItemMap = new Map();
     let simpleItemMap = new Map();
@@ -4747,7 +4747,8 @@ function changePreviousSettings() {
         recItems:recItems,
         quantityItems:quantityItems,
         quantityInspectionBalances:quantityInspectionBalances,
-        managedMasterItems:managedMasterItems
+        managedMasterItems:managedMasterItems,
+        managedMasterRevision:managedMasterRevision
       };
 
       return new Promise(
@@ -4839,6 +4840,14 @@ function changePreviousSettings() {
           cache.managedMasterItems
         ) ? cache.managedMasterItems : [];
 
+        managedMasterRevision =
+          managedMasterItems.length > 0
+            ? String(
+                cache.managedMasterRevision ||
+                ""
+              ).trim()
+            : "";
+
         buildAppInitialDataMaps();
         appInitialDataLoaded = true;
         renderCancelSendButton();
@@ -4895,11 +4904,14 @@ function changePreviousSettings() {
                 initialDataVersion:"status-light-v2",
 
                 /*
-                 * IndexedDBから索引を復元済みなら、
-                 * GASから3,277件を再送しない。
+                 * 索引と一緒に保存したrevisionを送る。
+                 * 索引がない場合は空文字を送り、
+                 * GASから最新索引を受け取る。
                  */
-                includeManagedMaster:
-                  managedMasterItems.length === 0
+                clientManagedMasterRevision:
+                  managedMasterItems.length > 0
+                    ? managedMasterRevision
+                    : ""
               })
             }
           );
@@ -4956,19 +4968,49 @@ function changePreviousSettings() {
           result.quantityInspectionBalances
         ) ? result.quantityInspectionBalances : [];
 
+        const responseManagedMasterRevision =
+          String(
+            result.managedMasterRevision ||
+            ""
+          ).trim();
+
         /*
-         * GASが索引を返した場合だけ更新する。
-         * 索引省略時はIndexedDBから復元した内容を維持する。
+         * revision不一致でGASが索引を返した場合だけ、
+         * 索引とrevisionを同時に更新する。
+         *
+         * revision一致で索引が省略された場合は、
+         * IndexedDBから復元した索引を維持する。
          */
         if (
           result.managedMasterIncluded !== false
         ) {
-          managedMasterItems =
+          const returnedManagedMasterItems =
             Array.isArray(
               result.managedMasterItems
             )
               ? result.managedMasterItems
               : [];
+
+          if (
+            returnedManagedMasterItems.length === 0
+          ) {
+            throw new Error(
+              "最新の索引が空です"
+            );
+          }
+
+          managedMasterItems =
+            returnedManagedMasterItems;
+
+          managedMasterRevision =
+            responseManagedMasterRevision;
+
+        } else if (
+          responseManagedMasterRevision &&
+          managedMasterItems.length > 0
+        ) {
+          managedMasterRevision =
+            responseManagedMasterRevision;
         }
 
         buildAppInitialDataMaps();
@@ -4997,16 +5039,6 @@ function changePreviousSettings() {
           "isReady"
         );
 
-        /*
-         * 保存済み索引を使用して状態取得を先に完了した場合は、
-         * 画面を待たせず索引だけをバックグラウンド更新する。
-         */
-        if (
-          result.managedMasterIncluded === false
-        ) {
-          void refreshManagedMasterInBackground();
-        }
-
         return true;
 
       } catch (error) {
@@ -5024,115 +5056,6 @@ function changePreviousSettings() {
 
       } finally {
         appInitialDataLoading = false;
-      }
-    }
-
-    /**
-     * 軽量マスタだけをバックグラウンド更新する。
-     *
-     * 現在状態の取得完了やカメラ開始は待たせない。
-     * 取得に失敗した場合は、端末に保存済みの索引を維持する。
-     */
-    async function refreshManagedMasterInBackground() {
-      if (
-        managedMasterBackgroundRefreshRunning
-      ) {
-        return false;
-      }
-
-      managedMasterBackgroundRefreshRunning =
-        true;
-
-      try {
-        const response =
-          await fetch(
-            GAS_URL +
-              "?t=" +
-              Date.now() +
-              "&action=getManagedMasterData",
-            {
-              method:"POST",
-              headers:{
-                "Content-Type":"text/plain"
-              },
-              cache:"no-store",
-              body:JSON.stringify({
-                action:
-                  "getManagedMasterData"
-              })
-            }
-          );
-
-        const responseText =
-          await response.text();
-
-        let result = null;
-
-        try {
-          result =
-            JSON.parse(responseText);
-        } catch (error) {
-          throw new Error(
-            "索引更新結果の解析に失敗しました"
-          );
-        }
-
-        if (
-          !response.ok ||
-          (!result.ok && !result.success)
-        ) {
-          throw new Error(
-            result.error ||
-            result.message ||
-            "索引を更新できませんでした"
-          );
-        }
-
-        const refreshedItems =
-          Array.isArray(
-            result.managedMasterItems
-          )
-            ? result.managedMasterItems
-            : [];
-
-        if (
-          refreshedItems.length === 0
-        ) {
-          throw new Error(
-            "更新された索引が空です"
-          );
-        }
-
-        managedMasterItems =
-          refreshedItems;
-
-        buildAppInitialDataMaps();
-
-        await saveInventoryCache();
-
-        console.log(
-          "索引バックグラウンド更新完了",
-          managedMasterItems.length,
-          result.fetchedAt || ""
-        );
-
-        return true;
-
-      } catch (error) {
-        /*
-         * バックグラウンド更新失敗時は、
-         * 既存の索引を消さず、そのまま使用する。
-         */
-        console.warn(
-          "索引バックグラウンド更新失敗",
-          error
-        );
-
-        return false;
-
-      } finally {
-        managedMasterBackgroundRefreshRunning =
-          false;
       }
     }
 
