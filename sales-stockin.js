@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v41 bootstrap */
+/* 販売品入庫受付 v42 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -26,10 +26,13 @@
       return loadScript("./irregular-master-picker-dev.js?v=41");
     })
     .then(function() {
+      return loadScript("./irregular-simple-id-alias-dev.js?v=42");
+    })
+    .then(function() {
       return loadScript("./irregular-master-layout-dev.js?v=40");
     })
     .then(function() {
-      return loadScript("./irregular-registration-guard-dev.js?v=41");
+      return loadScript("./irregular-registration-guard-dev.js?v=42");
     })
     .then(function() {
       return loadScript("./mode-description-hint-dev.js?v=37");
