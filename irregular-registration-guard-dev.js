@@ -1,9 +1,10 @@
 /*
- * イレギュラー受付：登録可否共通ガード（開発版 v41）
+ * イレギュラー受付：登録可否共通ガード（開発版 v42）
  *
  * GASは変更しない。
  * QR・直接入力・マスタ選択で共通利用できる登録可否判定の入口を維持する。
  * マスタ選択では複数選択した管理番号を1件ずつ同じ判定へ通す。
+ * 簡易個体だけ、4桁ゼロ埋めIDと個体マスタの正式IDを照合して現在状態を参照する。
  */
 (function() {
   "use strict";
@@ -39,7 +40,7 @@
   function allManagedSourceItems() {
     const rows = [];
     try {
-      /* 現行の照合優先順位：簡易個体 → 個体 → REC → 軽量マスタ */
+      /* 通常IDの完全一致は従来どおり */
       if (typeof simpleItems !== "undefined" && Array.isArray(simpleItems)) rows.push(...simpleItems);
       if (typeof individualItems !== "undefined" && Array.isArray(individualItems)) rows.push(...individualItems);
       if (typeof recItems !== "undefined" && Array.isArray(recItems)) rows.push(...recItems);
@@ -53,7 +54,26 @@
   function findManagedItem(managedId) {
     const target = normalize(managedId);
     if (!target) return null;
-    return allManagedSourceItems().find(function(item){return managedIdOf(item) === target}) || null;
+
+    /* まず正式管理番号の完全一致。個体・RECはこの経路だけを使う。 */
+    const exact = allManagedSourceItems().find(function(item){
+      return managedIdOf(item) === target;
+    }) || null;
+
+    /*
+     * 完全一致が軽量マスタしか持っていない場合でも、簡易個体の4桁状態行が
+     * 対応していれば状態判定はそちらを優先する。
+     */
+    try {
+      if (typeof window.getIrregularSimpleAliasRecord === "function") {
+        const alias = window.getIrregularSimpleAliasRecord(target);
+        if (alias && alias.item) return alias.item;
+      }
+    } catch (error) {
+      console.warn("開発版ガード：簡易個体IDの照合に失敗しました",error);
+    }
+
+    return exact;
   }
 
   function queueContainsManagedId(managedId) {
@@ -187,5 +207,5 @@
   }
 
   document.addEventListener("click",guardMachineAdd,true);
-  console.info("開発版：イレギュラー受付 共通登録ガード v41 読込完了");
+  console.info("開発版：イレギュラー受付 共通登録ガード v42 読込完了");
 })();
