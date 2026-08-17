@@ -1775,38 +1775,7 @@ function changePreviousSettings() {
         );
         renderScannerResults();
 
-        return await sendWizardBatch({
-          onAccepted:function() {
-            const irregularArea =
-              document.getElementById(
-                "wizardIrregularArea"
-              );
-            const postSendArea =
-              document.getElementById(
-                "wizardPostSendArea"
-              );
-
-            if (irregularArea) {
-              irregularArea.hidden = true;
-            }
-            if (postSendArea) {
-              postSendArea.hidden = true;
-            }
-
-            setTimeout(function() {
-              const status =
-                document.getElementById(
-                  "wizardSendStatus"
-                );
-              if (status) {
-                status.scrollIntoView({
-                  behavior:"smooth",
-                  block:"center"
-                });
-              }
-            }, 50);
-          }
-        });
+        return await sendWizardBatch();
       };
 
     function isScannerModeAllowed(
