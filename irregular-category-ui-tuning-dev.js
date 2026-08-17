@@ -1,4 +1,4 @@
-/* 開発版 v55：イレギュラー受付 大分類UIの可読性調整 */
+/* 開発版 v59：イレギュラー受付 大分類UIの可読性調整 */
 (function() {
   "use strict";
 
@@ -15,6 +15,18 @@
     const style = document.createElement("style");
     style.id = STYLE_ID;
     style.textContent = `
+      /* ボタンの大きさは変えず、縦方向の間隔だけを圧縮する */
+      #${ROOT_ID} .irregularMasterCategoryGrid,
+      #${ROOT_ID} .irregularMasterItemGrid {
+        row-gap: 2px !important;
+        column-gap: 4px !important;
+      }
+      #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice,
+      #${ROOT_ID} .irregularMasterItemGrid .irregularMasterChoice {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+
       #${ROOT_ID} .irregularMasterCategoryGrid .irregularMasterChoice {
         font-size: 13px !important;
         font-weight: 800 !important;
@@ -60,5 +72,5 @@
     subtree: true
   });
 
-  console.info("開発版 v55：大分類名短縮 + 分類名文字サイズ拡大 有効");
+  console.info("開発版 v59：大分類名短縮 + 分類名文字サイズ拡大 有効");
 })();
