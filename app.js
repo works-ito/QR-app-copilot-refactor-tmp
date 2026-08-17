@@ -89,6 +89,13 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         clearInterval(timer);
         animatedDotsTimers.delete(elementId);
       }
+
+      const element =
+        document.getElementById(elementId);
+
+      if (element) {
+        element.classList.remove("isProcessing");
+      }
     }
 
     function startAnimatedDots(
@@ -101,6 +108,8 @@ const PREVIOUS_SETTINGS_STORAGE_KEY =
         document.getElementById(elementId);
 
       if (!element) return;
+
+      element.classList.add("isProcessing");
 
       let dots = 0;
 
