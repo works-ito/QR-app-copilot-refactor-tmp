@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v49 bootstrap */
+/* 販売品入庫受付 v50 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -12,7 +12,10 @@
     });
   }
 
-  loadScript("./scanner-try-harder-dev.js?v=49")
+  loadScript("https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js")
+    .then(function() {
+      return loadScript("./scanner-zxing-wasm-dev.js?v=50");
+    })
     .then(function() {
       return loadScript("./sales-stockin-core.js?v=33");
     })
