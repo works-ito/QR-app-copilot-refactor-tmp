@@ -44,7 +44,7 @@
       return loadScript("./irregular-registration-guard-dev.js?v=43");
     })
     .then(function() {
-      return loadScript("./irregular-quantity-flow-dev.js?v=43");
+      return loadScript("./irregular-quantity-flow-dev.js?v=44");
     })
     .then(function() {
       return loadScript("./mode-description-hint-dev.js?v=37");
