@@ -4756,6 +4756,7 @@ function changePreviousSettings() {
 
     function createQuantityStockMap(items) {
       const map = new Map();
+      const stockByLocation = {};
 
       (Array.isArray(items) ? items : [])
         .forEach(function(item) {
@@ -4773,16 +4774,47 @@ function changePreviousSettings() {
             return;
           }
 
+          const currentStock =
+            Number(
+              item.currentStock || 0
+            );
+
           map.set(
             makeQuantityStockKeyLocal(
               itemCode,
               location
             ),
-            Number(
-              item.currentStock || 0
-            )
+            currentStock
           );
+
+          const normalizedCode =
+            normalizeLookupKey(
+              itemCode
+            );
+
+          if (!stockByLocation[normalizedCode]) {
+            stockByLocation[normalizedCode] = {};
+          }
+
+          stockByLocation[normalizedCode][location] =
+            currentStock;
         });
+
+      /*
+       * マスタから選ぶ画面の既存モジュールへ、
+       * 品目コード×拠点別現在庫を公開する。
+       */
+      window.quantityStockByLocation =
+        stockByLocation;
+
+      if (
+        typeof window
+          .refreshIrregularQuantityStockInfo ===
+          "function"
+      ) {
+        window
+          .refreshIrregularQuantityStockInfo();
+      }
 
       return map;
     }
