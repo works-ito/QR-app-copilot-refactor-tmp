@@ -579,41 +579,6 @@
       </p>
 
     </section>
-  </main>
-
-  <!--
-    現行処理との接続用フィールド。
-    既存の送信・状態判定処理はこれらのIDを参照するため、
-    ウィザードの選択結果をここへ同期する。
-  -->
-  <div id="legacySelectionBridge" hidden>
-    <select id="mode" aria-hidden="true"></select>
-
-    <select id="location" aria-hidden="true">
-      <option value="本社">本社</option>
-      <option value="三郷">三郷</option>
-      <option value="MF">MF</option>
-    </select>
-
-    <select id="user" aria-hidden="true">
-      <option value="奥">奥</option>
-      <option value="滝島">滝島</option>
-      <option value="上野">上野</option>
-      <option value="見﨑">見﨑</option>
-      <option value="田之岡">田之岡</option>
-      <option value="篠塚">篠塚</option>
-      <option value="その他">その他</option>
-    </select>
-
-    <select id="recTarget" aria-hidden="true">
-      <option value="騒音計">騒音計</option>
-      <option value="振動計">振動計</option>
-      <option value="内部USB">内部USB</option>
-    </select>
-
-    <input id="recDate" type="date" aria-hidden="true">
-  </div>
-
   <!-- 送信後の写真・REC追記フロー -->
   <section id="wizardPostSendArea" class="wizardPostSendArea" hidden>
     <div id="wizardIrregularArea" class="wizardPostCard" hidden>
@@ -686,6 +651,43 @@
     </button>
 
   </section>
+
+  </main>
+
+  <!--
+    現行処理との接続用フィールド。
+    既存の送信・状態判定処理はこれらのIDを参照するため、
+    ウィザードの選択結果をここへ同期する。
+  -->
+  <div id="legacySelectionBridge" hidden>
+    <select id="mode" aria-hidden="true"></select>
+
+    <select id="location" aria-hidden="true">
+      <option value="本社">本社</option>
+      <option value="三郷">三郷</option>
+      <option value="MF">MF</option>
+    </select>
+
+    <select id="user" aria-hidden="true">
+      <option value="奥">奥</option>
+      <option value="滝島">滝島</option>
+      <option value="上野">上野</option>
+      <option value="見﨑">見﨑</option>
+      <option value="田之岡">田之岡</option>
+      <option value="篠塚">篠塚</option>
+      <option value="その他">その他</option>
+    </select>
+
+    <select id="recTarget" aria-hidden="true">
+      <option value="騒音計">騒音計</option>
+      <option value="振動計">振動計</option>
+      <option value="内部USB">内部USB</option>
+    </select>
+
+    <input id="recDate" type="date" aria-hidden="true">
+  </div>
+
+
 
   <div id="inventoryRuntime" hidden></div>
   <script src="./scanner-try-harder-dev.js?v=48"></script>
