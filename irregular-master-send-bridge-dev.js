@@ -1,10 +1,10 @@
 /*
- * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v69
+ * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v70
  *
  * 目的：
  * - マスタ選択キューを通常QRと同じ scannedEntries / sendWizardBatch() へ渡す。
- * - 返却時、追記確認へ遷移した時点でキュー側は受け渡し完了とし、
- *   もう一度「まとめて送信」を押して同じ品目を重複取込しない。
+ * - 返却時、追記確認へ遷移した時点でキュー側は受け渡し完了とする。
+ * - マスタ選択後に旧「番号入力」画面へ戻らず、返却追記へそのまま進める。
  * - 同一レコードが既に staged 済みなら、同内容に限って再利用する。
  * - 数量・出庫取消は sourceQuantityLogId まで含めて同一性を判定する。
  *
@@ -35,6 +35,43 @@
       normalize(existing.qrText) === normalize(candidate.qrText) &&
       normalize(existing.managementType) === normalize(candidate.managementType)
     );
+  }
+
+  function prepareReturnMemoHost() {
+    const irregularArea =
+      document.getElementById("wizardIrregularArea");
+    const cameraArea =
+      document.getElementById("cameraPreview");
+
+    /*
+     * 旧直接入力フォームは wizardIrregularArea の中にある。
+     * マスタから選択済みなら、返却追記へ進む間はここを閉じる。
+     */
+    if (irregularArea) {
+      irregularArea.hidden = true;
+    }
+
+    /*
+     * 返却追記は cameraPreview（scannerArea）の中にある。
+     * イレギュラー受付では通常この領域が非表示なので、
+     * マスタ選択 → 返却のときだけ追記用ホストとして表示する。
+     */
+    if (cameraArea) {
+      cameraArea.classList.add("isActive");
+    }
+
+    [
+      "scannerStatus",
+      "scannerViewport",
+      "scannerResult",
+      "scannerQuantityInput",
+      "cancelLastScanButton",
+      "resetAllScansButton",
+      "wizardSendBatchButton"
+    ].forEach(function(id) {
+      const element = document.getElementById(id);
+      if (element) element.hidden = true;
+    });
   }
 
   window.sendIrregularMasterPickerBatch = async function(records) {
@@ -116,12 +153,6 @@
           );
           return false;
         }
-
-        /*
-         * 返却追記画面へ進んだ後など、マスタ側キューだけが残って
-         * 再度送信ボタンが押されたケース。
-         * 同一内容なら重複追加せず、既存 staged レコードを使う。
-         */
         continue;
       }
 
@@ -142,17 +173,25 @@
       renderScannerResults();
     }
 
-    /*
-     * sendWizardBatch() が false を返す代表例は返却時の追記確認。
-     * この時点でマスタ → scannedEntries の受け渡し自体は完了しているため、
-     * picker側には true を返してキューをクリアする。
-     * 送信本体は既存の返却追記確認後にそのまま継続する。
-     */
-    await sendWizardBatch();
-    return true;
+    const isReturnMemoStage =
+      wizardState.mode === "返却" &&
+      !wizardReturnMemoConfirmed;
+
+    if (isReturnMemoStage) {
+      prepareReturnMemoHost();
+      await sendWizardBatch();
+
+      /*
+       * この false は「送信失敗」ではなく、返却追記の入力待ち。
+       * picker側のキューは役目を終えているのでクリアさせる。
+       */
+      return true;
+    }
+
+    return await sendWizardBatch();
   };
 
   console.info(
-    "開発版：イレギュラーマスタ送信ブリッジ v69 読込完了"
+    "開発版：イレギュラーマスタ送信ブリッジ v70 読込完了"
   );
 })();
