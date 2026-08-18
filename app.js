@@ -1145,6 +1145,7 @@ function changePreviousSettings() {
       if (settings.mode === "検品") {
         cameraPreview.classList.remove("isActive");
         inspectionArea.hidden = false;
+        connectionNote.hidden = false;
         connectionNote.innerText =
           "返却された品目を一覧から選び、再使用できる数と廃棄する数を入力します。QR読取は行いません。";
         prepareQuantityInspectionArea();
@@ -1156,15 +1157,14 @@ function changePreviousSettings() {
         cameraPreview.classList.remove(
           "isActive"
         );
-
-        connectionNote.innerText =
-          "本番接続時はカメラを起動せず、番号入力／番号不明・追記・写真の画面へ進みます。";
+        connectionNote.hidden = true;
+        connectionNote.innerText = "";
       } else {
         inspectionArea.hidden = true;
         cameraPreview.classList.add(
           "isActive"
         );
-
+        connectionNote.hidden = false;
         connectionNote.innerText =
           "読み取った内容は、確認後にまとめて送信されます。";
       }
