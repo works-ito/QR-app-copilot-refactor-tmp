@@ -1,10 +1,12 @@
 /*
- * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v70
+ * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v71
  *
  * 目的：
  * - マスタ選択キューを通常QRと同じ scannedEntries / sendWizardBatch() へ渡す。
  * - 返却時、追記確認へ遷移した時点でキュー側は受け渡し完了とする。
  * - マスタ選択後に旧「番号入力」画面へ戻らず、返却追記へそのまま進める。
+ * - イレギュラー返却の追記画面だけを post-send 領域へ一時移動し、
+ *   QRカメラ領域や通常側の取消ボタンを誤表示しない。
  * - 同一レコードが既に staged 済みなら、同内容に限って再利用する。
  * - 数量・出庫取消は sourceQuantityLogId まで含めて同一性を判定する。
  *
@@ -37,42 +39,102 @@
     );
   }
 
-  function prepareReturnMemoHost() {
-    const irregularArea =
-      document.getElementById("wizardIrregularArea");
+  function restoreReturnMemoHost() {
+    const memoArea =
+      document.getElementById("wizardReturnMemoArea");
     const cameraArea =
       document.getElementById("cameraPreview");
 
-    /*
-     * 旧直接入力フォームは wizardIrregularArea の中にある。
-     * マスタから選択済みなら、返却追記へ進む間はここを閉じる。
-     */
+    if (
+      memoArea &&
+      cameraArea &&
+      memoArea.parentElement !== cameraArea
+    ) {
+      const sendButton =
+        document.getElementById("wizardSendBatchButton");
+
+      if (sendButton && sendButton.parentElement === cameraArea) {
+        cameraArea.insertBefore(memoArea, sendButton);
+      } else {
+        cameraArea.appendChild(memoArea);
+      }
+    }
+  }
+
+  function prepareReturnMemoHost() {
+    const irregularArea =
+      document.getElementById("wizardIrregularArea");
+    const postSendArea =
+      document.getElementById("wizardPostSendArea");
+    const memoArea =
+      document.getElementById("wizardReturnMemoArea");
+    const cameraArea =
+      document.getElementById("cameraPreview");
+
+    /* 旧直接入力フォームはマスタ選択後は閉じる。 */
     if (irregularArea) {
       irregularArea.hidden = true;
     }
 
     /*
-     * 返却追記は cameraPreview（scannerArea）の中にある。
-     * イレギュラー受付では通常この領域が非表示なので、
-     * マスタ選択 → 返却のときだけ追記用ホストとして表示する。
+     * v70では返却追記を見せるため cameraPreview 全体を表示していた。
+     * その結果、送信後にQRカメラと通常側の取消ボタンまで露出した。
+     * v71では追記カードだけを post-send 領域へ一時移動する。
      */
     if (cameraArea) {
-      cameraArea.classList.add("isActive");
+      cameraArea.classList.remove("isActive");
     }
 
-    [
-      "scannerStatus",
-      "scannerViewport",
-      "scannerResult",
-      "scannerQuantityInput",
-      "cancelLastScanButton",
-      "resetAllScansButton",
-      "wizardSendBatchButton"
-    ].forEach(function(id) {
-      const element = document.getElementById(id);
-      if (element) element.hidden = true;
+    if (postSendArea) {
+      postSendArea.hidden = false;
+    }
+
+    if (
+      memoArea &&
+      postSendArea &&
+      memoArea.parentElement !== postSendArea
+    ) {
+      const postSendCancel =
+        document.getElementById("wizardPostSendCancelButton");
+
+      if (
+        postSendCancel &&
+        postSendCancel.parentElement === postSendArea
+      ) {
+        postSendArea.insertBefore(memoArea, postSendCancel);
+      } else {
+        postSendArea.appendChild(memoArea);
+      }
+    }
+  }
+
+  function installReturnMemoRestoreObserver() {
+    const memoArea =
+      document.getElementById("wizardReturnMemoArea");
+
+    if (!memoArea || memoArea.dataset.masterBridgeObserved === "true") {
+      return;
+    }
+
+    memoArea.dataset.masterBridgeObserved = "true";
+
+    const observer = new MutationObserver(function() {
+      /*
+       * 追記確定・戻る・リセットで追記カードが閉じたら、
+       * 通常受付用の元位置へ戻して次回の通常返却に影響させない。
+       */
+      if (memoArea.hidden) {
+        restoreReturnMemoHost();
+      }
+    });
+
+    observer.observe(memoArea, {
+      attributes:true,
+      attributeFilter:["hidden"]
     });
   }
+
+  installReturnMemoRestoreObserver();
 
   window.sendIrregularMasterPickerBatch = async function(records) {
     if (!Array.isArray(records) || !records.length) {
@@ -192,6 +254,6 @@
   };
 
   console.info(
-    "開発版：イレギュラーマスタ送信ブリッジ v70 読込完了"
+    "開発版：イレギュラーマスタ送信ブリッジ v71 読込完了"
   );
 })();
