@@ -1,12 +1,12 @@
 /*
- * 開発版 v79：Gemini伝票解析を高速化条件で単一テストするモジュール。
+ * 開発版 v80：Gemini伝票解析を高速化条件で単一テストするモジュール。
  *
  * - 全体画像を1回だけ送る。
  * - 長辺1024px / JPEG 0.75。
- * - 開発版から analysisModel:"gemini-2.5-flash-lite" を指定する。
+ * - 開発版から analysisModel:"gemini-3.5-flash-lite" を指定する。
  * - 解析結果が空・エラーでも2回目のGemini呼び出しは行わない。
  * - fetchWithRetry() は使わない。
- * - GAS側が analysisModel を受け付けるまでは、モデル指定は無視される。
+ * - 本番版のモデル指定には影響しない。
  * - gemini-timing-dev.js と併用し、成功時のAPI所要時間を画面表示する。
  */
 (function() {
@@ -20,7 +20,7 @@
 
     try {
       const profile = {
-        label:"Flash-Lite 全体1回",
+        label:"3.5 Flash-Lite 全体1回",
         cropRatio:1,
         maxSide:1024,
         quality:0.75
@@ -41,7 +41,7 @@
           photoType:photoType,
           requestedFields:["customerName", "siteName"],
           analysisRegion:profile.label,
-          analysisModel:"gemini-2.5-flash-lite"
+          analysisModel:"gemini-3.5-flash-lite"
         })
       });
 
@@ -96,7 +96,7 @@
         acquiredAt:new Date().toISOString(),
         analysisRegion:profile.label,
         analysisModel:
-          result.analysisModel || "gemini-2.5-flash-lite",
+          result.analysisModel || "gemini-3.5-flash-lite",
         geminiFetchMs:Number(
           result.geminiFetchMs || 0
         )
@@ -106,7 +106,7 @@
 
     } catch (error) {
       console.warn(
-        "伝票情報取得失敗（Flash-Lite単一テスト）",
+        "伝票情報取得失敗（3.5 Flash-Lite単一テスト）",
         error
       );
 
@@ -128,6 +128,6 @@
     analyzeWholeImageOnce;
 
   console.info(
-    "開発版：Gemini Flash-Lite 1024px 単一テスト v79 読込完了"
+    "開発版：Gemini 3.5 Flash-Lite 1024px 単一テスト v80 読込完了"
   );
 })();
