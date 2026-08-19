@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v83 bootstrap */
+/* 販売品入庫受付 v84 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -56,7 +56,7 @@
       return loadScript("./irregular-master-shipment-photo-dev.js?v=82");
     })
     .then(function() {
-      return loadScript("./irregular-master-shipment-transition-dev.js?v=83");
+      return loadScript("./irregular-master-shipment-transition-dev.js?v=84");
     })
     .then(function() {
       return loadScript("./quantity-transfer-dev.js?v=75");
