@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v72 bootstrap */
+/* 販売品入庫受付 v73 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -51,6 +51,9 @@
     })
     .then(function() {
       return loadScript("./irregular-master-send-bridge-dev.js?v=71");
+    })
+    .then(function() {
+      return loadScript("./quantity-transfer-dev.js?v=73");
     })
     .then(function() {
       return loadScript("./mode-description-hint-dev.js?v=37");
