@@ -1,5 +1,5 @@
 /*
- * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v71
+ * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v72
  *
  * 目的：
  * - マスタ選択キューを通常QRと同じ scannedEntries / sendWizardBatch() へ渡す。
@@ -9,6 +9,7 @@
  *   QRカメラ領域や通常側の取消ボタンを誤表示しない。
  * - 同一レコードが既に staged 済みなら、同内容に限って再利用する。
  * - 数量・出庫取消は sourceQuantityLogId まで含めて同一性を判定する。
+ * - 数量管理品の拠点移動は sourceLocation を共通送信レコードへ保持する。
  *
  * GASは変更しない。
  */
@@ -29,7 +30,9 @@
         Number(existing.quantity) === Number(candidate.quantity) &&
         normalize(existing.itemCode) === normalize(candidate.itemCode) &&
         normalize(existing.sourceQuantityLogId) ===
-          normalize(candidate.sourceQuantityLogId)
+          normalize(candidate.sourceQuantityLogId) &&
+        normalize(existing.sourceLocation) ===
+          normalize(candidate.sourceLocation)
       );
     }
 
@@ -71,16 +74,10 @@
     const cameraArea =
       document.getElementById("cameraPreview");
 
-    /* 旧直接入力フォームはマスタ選択後は閉じる。 */
     if (irregularArea) {
       irregularArea.hidden = true;
     }
 
-    /*
-     * v70では返却追記を見せるため cameraPreview 全体を表示していた。
-     * その結果、送信後にQRカメラと通常側の取消ボタンまで露出した。
-     * v71では追記カードだけを post-send 領域へ一時移動する。
-     */
     if (cameraArea) {
       cameraArea.classList.remove("isActive");
     }
@@ -119,10 +116,6 @@
     memoArea.dataset.masterBridgeObserved = "true";
 
     const observer = new MutationObserver(function() {
-      /*
-       * 追記確定・戻る・リセットで追記カードが閉じたら、
-       * 通常受付用の元位置へ戻して次回の通常返却に影響させない。
-       */
       if (memoArea.hidden) {
         restoreReturnMemoHost();
       }
@@ -188,6 +181,8 @@
         record.quantity = quantity;
         record.sourceQuantityLogId =
           normalize(selected.sourceQuantityLogId);
+        record.sourceLocation =
+          normalize(selected.sourceLocation);
 
         if (
           wizardState.mode === "出庫取消" &&
@@ -197,8 +192,20 @@
           return false;
         }
 
+        if (
+          wizardState.mode === "拠点移動" &&
+          !record.sourceLocation
+        ) {
+          alert("移動元拠点を選択してください");
+          return false;
+        }
+
         if (record.sourceQuantityLogId) {
           record.key += "__" + record.sourceQuantityLogId;
+        }
+
+        if (record.sourceLocation) {
+          record.key += "__FROM_" + record.sourceLocation;
         }
       }
 
@@ -242,11 +249,6 @@
     if (isReturnMemoStage) {
       prepareReturnMemoHost();
       await sendWizardBatch();
-
-      /*
-       * この false は「送信失敗」ではなく、返却追記の入力待ち。
-       * picker側のキューは役目を終えているのでクリアさせる。
-       */
       return true;
     }
 
@@ -254,6 +256,6 @@
   };
 
   console.info(
-    "開発版：イレギュラーマスタ送信ブリッジ v71 読込完了"
+    "開発版：イレギュラーマスタ送信ブリッジ v72 読込完了"
   );
 })();
