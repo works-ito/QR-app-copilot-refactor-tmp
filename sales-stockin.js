@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v79 bootstrap */
+/* 販売品入庫受付 v80 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -59,7 +59,7 @@
       return loadScript("./gemini-timing-dev.js?v=77");
     })
     .then(function() {
-      return loadScript("./gemini-whole-image-dev.js?v=79");
+      return loadScript("./gemini-whole-image-dev.js?v=80");
     })
     .then(function() {
       return loadScript("./mode-description-hint-dev.js?v=37");
