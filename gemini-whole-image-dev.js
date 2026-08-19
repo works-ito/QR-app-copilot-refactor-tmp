@@ -1,10 +1,12 @@
 /*
- * 開発版 v78：Gemini伝票解析を「全体画像1回」に固定するA/Bテスト用モジュール。
+ * 開発版 v79：Gemini伝票解析を高速化条件で単一テストするモジュール。
  *
- * - 上部50%の先行解析を停止する。
- * - 全体画像（長辺1600px / JPEG 0.85）を1回だけGeminiへ送る。
+ * - 全体画像を1回だけ送る。
+ * - 長辺1024px / JPEG 0.75。
+ * - 開発版から analysisModel:"gemini-2.5-flash-lite" を指定する。
  * - 解析結果が空・エラーでも2回目のGemini呼び出しは行わない。
- * - GAS・本番版は変更しない。
+ * - fetchWithRetry() は使わない。
+ * - GAS側が analysisModel を受け付けるまでは、モデル指定は無視される。
  * - gemini-timing-dev.js と併用し、成功時のAPI所要時間を画面表示する。
  */
 (function() {
@@ -18,10 +20,10 @@
 
     try {
       const profile = {
-        label:"全体1回",
+        label:"Flash-Lite 全体1回",
         cropRatio:1,
-        maxSide:1600,
-        quality:0.85
+        maxSide:1024,
+        quality:0.75
       };
 
       const photoBase64 =
@@ -30,10 +32,6 @@
           profile
         );
 
-      /*
-       * A/BテストではGemini呼び出し回数を厳密に1回へ固定するため、
-       * fetchWithRetry() は使わない。
-       */
       const response = await fetch(GAS_URL, {
         method:"POST",
         headers:{"Content-Type":"text/plain"},
@@ -42,7 +40,8 @@
           photoBase64:photoBase64,
           photoType:photoType,
           requestedFields:["customerName", "siteName"],
-          analysisRegion:profile.label
+          analysisRegion:profile.label,
+          analysisModel:"gemini-2.5-flash-lite"
         })
       });
 
@@ -96,6 +95,8 @@
           ),
         acquiredAt:new Date().toISOString(),
         analysisRegion:profile.label,
+        analysisModel:
+          result.analysisModel || "gemini-2.5-flash-lite",
         geminiFetchMs:Number(
           result.geminiFetchMs || 0
         )
@@ -105,7 +106,7 @@
 
     } catch (error) {
       console.warn(
-        "伝票情報取得失敗（全体1回テスト）",
+        "伝票情報取得失敗（Flash-Lite単一テスト）",
         error
       );
 
@@ -123,14 +124,10 @@
     }
   }
 
-  /*
-   * app.js の既存2段階解析関数を開発版だけ差し替える。
-   * classic script のトップレベル関数なので window 経由で上書き可能。
-   */
   window.analyzeWizardSlipPhoto =
     analyzeWholeImageOnce;
 
   console.info(
-    "開発版：Gemini全体画像1回テスト v78 読込完了"
+    "開発版：Gemini Flash-Lite 1024px 単一テスト v79 読込完了"
   );
 })();
