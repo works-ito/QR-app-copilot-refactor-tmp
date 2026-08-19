@@ -1,4 +1,4 @@
-/* 数量管理品：拠点移動（受入先入力方式） v73 */
+/* 数量管理品：拠点移動（受入先入力方式） v74 */
 (function() {
   "use strict";
 
@@ -149,7 +149,9 @@
       area && area.classList.contains("isVisible") &&
       itemCode
     );
-    box.hidden = !visible;
+    if (box.hidden !== !visible) {
+      box.hidden = !visible;
+    }
     if (!visible) return;
 
     const selected = normalize(normalSourceByItemCode.get(itemCode));
@@ -226,7 +228,9 @@
     const step = document.querySelector('#irregularMasterPickerDev [data-master-step="quantity"]');
     const itemCode = irregularItemCode();
     const visible = Boolean(isQuantityTransferMode() && step && !step.hidden && itemCode);
-    box.hidden = !visible;
+    if (box.hidden !== !visible) {
+      box.hidden = !visible;
+    }
     if (!visible) return;
 
     const selected = normalize(irregularSourceByItemCode.get(itemCode));
@@ -333,7 +337,7 @@
       if (reset) setTimeout(clearTransferSelections, 0);
     }, false);
 
-    console.info("開発版：数量管理品 拠点移動 v73 読込完了");
+    console.info("開発版：数量管理品 拠点移動 v74 読込完了");
   }
 
   if (document.readyState === "loading") {
