@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v86 bootstrap */
+/* 販売品入庫受付 v87 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -68,7 +68,7 @@
       return loadScript("./mode-description-hint-dev.js?v=37");
     })
     .then(function() {
-      return loadScript("./wizard-session-finish-dev.js?v=86");
+      return loadScript("./wizard-session-finish-dev.js?v=87");
     })
     .catch(function(error) {
       console.error("開発版追加処理の初期化に失敗しました", error);
