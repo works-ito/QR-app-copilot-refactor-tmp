@@ -1,10 +1,11 @@
-/* 数量管理品：拠点移動（受入先入力方式） v74 */
+/* 数量管理品：拠点移動（受入先入力方式） v75 */
 (function() {
   "use strict";
 
   const LOCATIONS = ["本社", "三郷", "MF"];
   const normalSourceByItemCode = new Map();
   const irregularSourceByItemCode = new Map();
+  const irregularQueuedSourceByItemCode = new Map();
 
   function normalize(value) {
     return String(value == null ? "" : value).trim();
@@ -264,11 +265,39 @@
       alert("移動元と受入先は別の拠点を選択してください");
       return;
     }
-    if (Number.isInteger(quantity) && quantity > stock) {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      alert("数量は1以上の整数で入力してください");
+      return;
+    }
+    if (quantity > stock) {
       event.preventDefault();
       event.stopImmediatePropagation();
       alert("移動元「" + source + "」の使用可能在庫は" + stock + "です");
+      return;
     }
+
+    const queuedSource = normalize(irregularQueuedSourceByItemCode.get(itemCode));
+    if (queuedSource && queuedSource !== source) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      alert(
+        itemCode +
+        "は移動元「" + queuedSource +
+        "」ですでに追加済みです。別の移動元から追加する場合は先にまとめて送信してください。"
+      );
+      return;
+    }
+
+    irregularQueuedSourceByItemCode.set(itemCode, source);
+
+    setTimeout(function() {
+      const queue = document.getElementById("irregularMasterQueue");
+      if (queue && !queue.hidden) {
+        queue.scrollIntoView({behavior:"smooth", block:"center"});
+      }
+    }, 0);
   }
 
   function patchPreparedRecords() {
@@ -297,9 +326,54 @@
     getWizardPreparedBatchRecords = patched;
   }
 
+  function patchIrregularSender() {
+    if (typeof window.sendIrregularMasterPickerBatch !== "function") return;
+    if (window.sendIrregularMasterPickerBatch.__quantityTransferPatched) return;
+
+    const original = window.sendIrregularMasterPickerBatch;
+    const patched = async function(records) {
+      const nextRecords = Array.isArray(records)
+        ? records.map(function(record) {
+            const next = Object.assign({}, record);
+            if (
+              isQuantityTransferMode() &&
+              next &&
+              next.type === "quantity"
+            ) {
+              const itemCode = normalize(next.code);
+              const source =
+                normalize(next.sourceLocation) ||
+                normalize(irregularQueuedSourceByItemCode.get(itemCode)) ||
+                normalize(irregularSourceByItemCode.get(itemCode));
+
+              if (!source) {
+                throw new Error(
+                  (itemCode || "数量管理品") +
+                  "の移動元拠点がありません"
+                );
+              }
+
+              next.sourceLocation = source;
+            }
+            return next;
+          })
+        : records;
+
+      const accepted = await original.call(this, nextRecords);
+      if (accepted) {
+        irregularQueuedSourceByItemCode.clear();
+      }
+      return accepted;
+    };
+
+    patched.__quantityTransferPatched = true;
+    window.sendIrregularMasterPickerBatch = patched;
+  }
+
   function clearTransferSelections() {
     normalSourceByItemCode.clear();
     irregularSourceByItemCode.clear();
+    irregularQueuedSourceByItemCode.clear();
     refreshNormalBox();
     refreshIrregularBox();
   }
@@ -323,6 +397,7 @@
     ensureNormalBox();
     ensureIrregularBox();
     patchPreparedRecords();
+    patchIrregularSender();
     refreshNormalBox();
     refreshIrregularBox();
     observeUi();
@@ -337,7 +412,7 @@
       if (reset) setTimeout(clearTransferSelections, 0);
     }, false);
 
-    console.info("開発版：数量管理品 拠点移動 v74 読込完了");
+    console.info("開発版：数量管理品 拠点移動 v75 読込完了");
   }
 
   if (document.readyState === "loading") {
