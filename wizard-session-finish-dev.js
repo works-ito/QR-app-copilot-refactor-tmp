@@ -1,5 +1,5 @@
 /*
- * 受付セッション正常終了 v87
+ * 受付セッション正常終了 v88
  *
  * 目的：
  * - 1受付 = 1セッションとし、正常完了後にQRカメラへ自動復帰しない。
@@ -8,6 +8,7 @@
  * - 一部失敗で読取済みレコードが残る場合は従来どおり読取画面へ戻す。
  * - 送信取消後の「同じQRを再読取」は従来挙動を維持する。
  * - イレギュラーマスタ選択パネルが正常完了後に残らないよう明示的に閉じる。
+ * - 新しい受付セッション開始時に、前回の送信結果表示だけが残らないようにする。
  *
  * GASは変更しない。
  */
@@ -90,6 +91,42 @@
     }
   }
 
+  function clearStaleWizardSendStatus() {
+    const status = document.getElementById("wizardSendStatus");
+    if (!status) return;
+
+    if (
+      typeof wizardSendResultUnknown !== "undefined" &&
+      wizardSendResultUnknown === true
+    ) {
+      return;
+    }
+
+    if (typeof stopAnimatedDots === "function") {
+      stopAnimatedDots("wizardSendStatus");
+    }
+
+    status.innerText = "";
+    status.className = "wizardSendStatus";
+  }
+
+  function patchResetWizardStatusCleanup() {
+    if (typeof window.resetWizard !== "function") return false;
+    if (window.resetWizard.__sendStatusCleanupPatched) return true;
+
+    const original = window.resetWizard;
+    const patched = function() {
+      const result = original.apply(this, arguments);
+      clearStaleWizardSendStatus();
+      return result;
+    };
+
+    patched.__sendStatusCleanupPatched = true;
+    patched.__original = original;
+    window.resetWizard = patched;
+    return true;
+  }
+
   async function finishWizardSession() {
     /*
      * 正常終了時だけ使用する。
@@ -104,6 +141,8 @@
     if (typeof resetWizard === "function") {
       resetWizard();
     }
+
+    clearStaleWizardSendStatus();
 
     /* reset後に独立モジュール側が残るケースへも念押し */
     closeIrregularMasterPicker();
@@ -160,6 +199,12 @@
       setTimeout(installContinuousScanPatch, 500);
     }
 
+    if (!patchResetWizardStatusCleanup()) {
+      setTimeout(patchResetWizardStatusCleanup, 500);
+    }
+
+    /* app.js の初期 resetWizard() はこのモジュール読込前に実行済みなので、初回だけ明示掃除 */
+    clearStaleWizardSendStatus();
     renderEntranceCancelButton();
 
     if (entranceCancelTimer) clearInterval(entranceCancelTimer);
@@ -171,7 +216,7 @@
       }
     });
 
-    console.info("開発版：1受付1セッション v87 読込完了");
+    console.info("開発版：1受付1セッション v88 読込完了");
   }
 
   if (document.readyState === "loading") {
