@@ -1,5 +1,5 @@
 /*
- * 受付セッション正常終了 v86
+ * 受付セッション正常終了 v87
  *
  * 目的：
  * - 1受付 = 1セッションとし、正常完了後にQRカメラへ自動復帰しない。
@@ -7,6 +7,7 @@
  * - 前回拠点・担当者、在庫キャッシュ、直前送信取消情報は保持する。
  * - 一部失敗で読取済みレコードが残る場合は従来どおり読取画面へ戻す。
  * - 送信取消後の「同じQRを再読取」は従来挙動を維持する。
+ * - イレギュラーマスタ選択パネルが正常完了後に残らないよう明示的に閉じる。
  *
  * GASは変更しない。
  */
@@ -77,6 +78,18 @@
     button.hidden = false;
   }
 
+  function closeIrregularMasterPicker() {
+    const pickerPanel = document.getElementById("irregularMasterPickerPanel");
+    if (pickerPanel) pickerPanel.hidden = true;
+
+    const pickerRoot = document.getElementById("irregularMasterPickerDev");
+    if (pickerRoot) {
+      pickerRoot.querySelectorAll(".irregularMasterStep").forEach(function(step) {
+        step.hidden = true;
+      });
+    }
+  }
+
   async function finishWizardSession() {
     /*
      * 正常終了時だけ使用する。
@@ -86,10 +99,14 @@
       await stopReadOnlyScanner();
     }
 
+    closeIrregularMasterPicker();
+
     if (typeof resetWizard === "function") {
       resetWizard();
     }
 
+    /* reset後に独立モジュール側が残るケースへも念押し */
+    closeIrregularMasterPicker();
     renderEntranceCancelButton();
 
     try {
@@ -154,7 +171,7 @@
       }
     });
 
-    console.info("開発版：1受付1セッション v86 読込完了");
+    console.info("開発版：1受付1セッション v87 読込完了");
   }
 
   if (document.readyState === "loading") {
