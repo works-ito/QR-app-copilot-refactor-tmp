@@ -1,10 +1,12 @@
 /*
- * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v72
+ * イレギュラー受付：マスタ選択 → 共通送信ブリッジ補強 v81
  *
  * 目的：
  * - マスタ選択キューを通常QRと同じ scannedEntries / sendWizardBatch() へ渡す。
  * - 返却時、追記確認へ遷移した時点でキュー側は受け渡し完了とする。
  * - マスタ選択後に旧「番号入力」画面へ戻らず、返却追記へそのまま進める。
+ * - 実送信を受理した時点でイレギュラー受付カードを閉じ、
+ *   出庫取消・完成機・拠点移動など送信後にマスタ選択画面へ戻らないようにする。
  * - イレギュラー返却の追記画面だけを post-send 領域へ一時移動し、
  *   QRカメラ領域や通常側の取消ボタンを誤表示しない。
  * - 同一レコードが既に staged 済みなら、同内容に限って再利用する。
@@ -40,6 +42,15 @@
       normalize(existing.qrText) === normalize(candidate.qrText) &&
       normalize(existing.managementType) === normalize(candidate.managementType)
     );
+  }
+
+  function hideIrregularEntryAfterAccepted() {
+    const irregularArea =
+      document.getElementById("wizardIrregularArea");
+
+    if (irregularArea) {
+      irregularArea.hidden = true;
+    }
   }
 
   function restoreReturnMemoHost() {
@@ -252,10 +263,12 @@
       return true;
     }
 
-    return await sendWizardBatch();
+    return await sendWizardBatch({
+      onAccepted:hideIrregularEntryAfterAccepted
+    });
   };
 
   console.info(
-    "開発版：イレギュラーマスタ送信ブリッジ v72 読込完了"
+    "開発版：イレギュラーマスタ送信ブリッジ v81 読込完了"
   );
 })();
