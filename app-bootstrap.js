@@ -1,4 +1,4 @@
-/* QR在庫管理 Refactor integration bootstrap v3 */
+/* QR在庫管理 Refactor integration bootstrap v4 */
 (function() {
   "use strict";
 
@@ -29,8 +29,7 @@
     "./irregular-master-layout-dev.js?v=40",
     "./irregular-registration-guard-dev.js?v=43",
     "./irregular-quantity-flow-dev.js?v=55",
-    "./irregular-master-send-bridge-dev.js?v=85",
-    "./irregular-master-shipment-photo-dev.js?v=82",
+    "./irregular-send.js?v=1",
 
     "./quantity-transfer-dev.js?v=96",
 
