@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v95 bootstrap */
+/* 販売品入庫受付 v96 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -27,7 +27,7 @@
     .then(function() { return loadScript("./irregular-quantity-flow-dev.js?v=55"); })
     .then(function() { return loadScript("./irregular-master-send-bridge-dev.js?v=85"); })
     .then(function() { return loadScript("./irregular-master-shipment-photo-dev.js?v=82"); })
-    .then(function() { return loadScript("./quantity-transfer-dev.js?v=75"); })
+    .then(function() { return loadScript("./quantity-transfer-dev.js?v=96"); })
     .then(function() { return loadScript("./gemini-timing-dev.js?v=77"); })
     .then(function() { return loadScript("./gemini-whole-image-dev.js?v=80"); })
     .then(function() { return loadScript("./mode-description-hint-dev.js?v=37"); })
