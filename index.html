@@ -113,76 +113,76 @@
       </div>
     </section>
     <section
-  id="previousStep"
-  class="panel"
->
+   id="previousStep"
+   class="panel"
+ >
 
-  <div class="stepHeader">
+   <div class="stepHeader">
 
-    <div class="stepLabel">
-      前回設定
-    </div>
+     <div class="stepLabel">
+       前回設定
+     </div>
 
-    <div
-      id="previousReceptionStatus"
-      class="receptionStatus"
-    >
-      通常受付
-    </div>
+     <div
+       id="previousReceptionStatus"
+       class="receptionStatus"
+     >
+       通常受付
+     </div>
 
-  </div>
+   </div>
 
-  <h1 class="question">
-    前回の設定を確認してください
-  </h1>
+   <h1 class="question">
+     前回の設定を確認してください
+   </h1>
 
-  <p class="questionHint">
-    拠点と担当者だけ前回の設定を使用できます
-  </p>
+   <p class="questionHint">
+     拠点と担当者だけ前回の設定を使用できます
+   </p>
 
-  <div class="previousCard">
+   <div class="previousCard">
 
-    <p class="previousLead">
-      前回は次の設定でした。
-    </p>
+     <p class="previousLead">
+       前回は次の設定でした。
+     </p>
 
-    <dl class="previousSettings">
+     <dl class="previousSettings">
 
-      <dt>拠点</dt>
-      <dd id="previousLocationDisplay"></dd>
+       <dt>拠点</dt>
+       <dd id="previousLocationDisplay"></dd>
 
-      <dt>担当者</dt>
-      <dd id="previousUserDisplay"></dd>
+       <dt>担当者</dt>
+       <dd id="previousUserDisplay"></dd>
 
-    </dl>
+     </dl>
 
-    <p class="previousQuestion">
-      今回もこの設定で進めますか？
-    </p>
+     <p class="previousQuestion">
+       今回もこの設定で進めますか？
+     </p>
 
-  </div>
+   </div>
 
-  <div class="buttonGrid singleColumn">
+   <div class="buttonGrid singleColumn">
 
-    <button
-      id="usePreviousSettingsButton"
-      class="nextButton"
-      type="button"
-    >
-      このまま進む
-    </button>
+     <button
+       id="usePreviousSettingsButton"
+       class="nextButton"
+       type="button"
+     >
+       このまま進む
+     </button>
 
-    <button
-      id="changePreviousSettingsButton"
-      class="backButton"
-      type="button"
-    >
-      変更する
-    </button>
+     <button
+       id="changePreviousSettingsButton"
+       class="backButton"
+       type="button"
+     >
+       変更する
+     </button>
 
-  </div>
+   </div>
 
-</section>
+ </section>
     <section
       id="modeStep"
       class="panel"
@@ -596,78 +596,78 @@
       </p>
 
     </section>
-  <!-- 送信後の写真・REC追記フロー -->
-  <section id="wizardPostSendArea" class="wizardPostSendArea" hidden>
-    <div id="wizardIrregularArea" class="wizardPostCard" hidden>
-      <h3>イレギュラー受付内容</h3>
-      <div class="wizardRadioGrid">
-        <label><input type="radio" name="wizardIrregularNumberType" value="入力" checked>番号を入力する</label>
-        <label><input type="radio" name="wizardIrregularNumberType" value="番号不明">番号が読めない</label>
-      </div>
-      <label for="wizardIrregularNumber">管理番号または品目コード</label>
-      <input id="wizardIrregularNumber" type="text" autocomplete="off" placeholder="管理番号または品目コードを入力">
-      <div class="wizardRadioGrid">
-        <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票あり" checked>伝票あり</label>
-        <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票なし">伝票なし</label>
-      </div>
-      <div id="wizardIrregularSlipGuide" class="wizardPostSummary">1枚目に伝票写真を追加してください。</div>
-      <label for="wizardIrregularNote">状況・理由</label>
-      <div class="irregularNoteEmphasis">
-        欠油・未入庫・破損状況などを必ず入力
-      </div>
-      <textarea id="wizardIrregularNote" placeholder="QR破損・汚れ・管理番号が読めない・機械の特徴などを必ず入力"></textarea>
-      <div id="wizardIrregularQuantityBox" hidden>
-        <label for="wizardIrregularQuantity">数量</label>
-        <input id="wizardIrregularQuantity" type="number" inputmode="numeric" min="1" step="1" placeholder="数量">
-        <div id="wizardIrregularQuantityUnit" class="wizardPostSummary"></div>
-      </div>
-      <div id="wizardIrregularCheckResult" class="wizardPostSummary"></div>
-      <button type="button" id="wizardConfirmIrregularButton">入力内容を確認して写真へ進む</button>
-      <button type="button" id="wizardCancelIrregularButton" class="secondaryButton">イレギュラー受付を取消</button>
-    </div>
+   <!-- 送信後の写真・REC追記フロー -->
+   <section id="wizardPostSendArea" class="wizardPostSendArea" hidden>
+     <div id="wizardIrregularArea" class="wizardPostCard" hidden>
+       <h3>イレギュラー受付内容</h3>
+       <div class="wizardRadioGrid">
+         <label><input type="radio" name="wizardIrregularNumberType" value="入力" checked>番号を入力する</label>
+         <label><input type="radio" name="wizardIrregularNumberType" value="番号不明">番号が読めない</label>
+       </div>
+       <label for="wizardIrregularNumber">管理番号または品目コード</label>
+       <input id="wizardIrregularNumber" type="text" autocomplete="off" placeholder="管理番号または品目コードを入力">
+       <div class="wizardRadioGrid">
+         <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票あり" checked>伝票あり</label>
+         <label><input type="radio" name="wizardIrregularSlipStatus" value="伝票なし">伝票なし</label>
+       </div>
+       <div id="wizardIrregularSlipGuide" class="wizardPostSummary">1枚目に伝票写真を追加してください。</div>
+       <label for="wizardIrregularNote">状況・理由</label>
+       <div class="irregularNoteEmphasis">
+         欠油・未入庫・破損状況などを必ず入力
+       </div>
+       <textarea id="wizardIrregularNote" placeholder="QR破損・汚れ・管理番号が読めない・機械の特徴などを必ず入力"></textarea>
+       <div id="wizardIrregularQuantityBox" hidden>
+         <label for="wizardIrregularQuantity">数量</label>
+         <input id="wizardIrregularQuantity" type="number" inputmode="numeric" min="1" step="1" placeholder="数量">
+         <div id="wizardIrregularQuantityUnit" class="wizardPostSummary"></div>
+       </div>
+       <div id="wizardIrregularCheckResult" class="wizardPostSummary"></div>
+       <button type="button" id="wizardConfirmIrregularButton">入力内容を確認して写真へ進む</button>
+       <button type="button" id="wizardCancelIrregularButton" class="secondaryButton">イレギュラー受付を取消</button>
+     </div>
 
-    <div id="wizardRecMemoArea" class="wizardPostCard" hidden>
-      <h3>REC追記</h3>
-      <div id="wizardRecMemoTarget" class="wizardPostSummary"></div>
-      <textarea id="wizardRecMemoText" placeholder="発送日・発送先・証明書待ち等"></textarea>
-      <button type="button" id="wizardSaveRecMemoButton">追記を保存</button>
-      <button type="button" id="wizardSkipRecMemoButton" class="secondaryButton">追記なしで完了</button>
-    </div>
+     <div id="wizardRecMemoArea" class="wizardPostCard" hidden>
+       <h3>REC追記</h3>
+       <div id="wizardRecMemoTarget" class="wizardPostSummary"></div>
+       <textarea id="wizardRecMemoText" placeholder="発送日・発送先・証明書待ち等"></textarea>
+       <button type="button" id="wizardSaveRecMemoButton">追記を保存</button>
+       <button type="button" id="wizardSkipRecMemoButton" class="secondaryButton">追記なしで完了</button>
+     </div>
 
-    <div id="wizardPhotoArea" class="wizardPostCard" hidden>
-      <h3 id="wizardPhotoHeading">写真の添付</h3>
-      <p>1枚目は伝票写真を選択してください。顧客名・現場名の自動取得に使用します。</p>
-      <div id="wizardPhotoSummary" class="wizardPostSummary"></div>
-      <input id="wizardPhotoCameraInput" type="file" accept="image/*" capture="environment" hidden>
-      <input id="wizardPhotoLibraryInput" type="file" accept="image/*" multiple hidden>
-      <button type="button" id="wizardPhotoCameraButton">カメラで撮影</button>
-      <button type="button" id="wizardPhotoLibraryButton">ライブラリから選ぶ</button>
-      <button type="button" id="wizardClearPhotosButton" class="secondaryButton">選択写真をクリア</button>
-      <div id="wizardPhotoPreview" class="wizardPostSummary">写真はまだ選択されていません。</div>
-      <button type="button" id="wizardSavePhotosButton" hidden>写真を保存</button>
-      <button type="button" id="wizardSkipPhotosButton" class="secondaryButton">写真なしで完了</button>
-    </div>
+     <div id="wizardPhotoArea" class="wizardPostCard" hidden>
+       <h3 id="wizardPhotoHeading">写真の添付</h3>
+       <p>1枚目は伝票写真を選択してください。顧客名・現場名の自動取得に使用します。</p>
+       <div id="wizardPhotoSummary" class="wizardPostSummary"></div>
+       <input id="wizardPhotoCameraInput" type="file" accept="image/*" capture="environment" hidden>
+       <input id="wizardPhotoLibraryInput" type="file" accept="image/*" multiple hidden>
+       <button type="button" id="wizardPhotoCameraButton">カメラで撮影</button>
+       <button type="button" id="wizardPhotoLibraryButton">ライブラリから選ぶ</button>
+       <button type="button" id="wizardClearPhotosButton" class="secondaryButton">選択写真をクリア</button>
+       <div id="wizardPhotoPreview" class="wizardPostSummary">写真はまだ選択されていません。</div>
+       <button type="button" id="wizardSavePhotosButton" hidden>写真を保存</button>
+       <button type="button" id="wizardSkipPhotosButton" class="secondaryButton">写真なしで完了</button>
+     </div>
 
-    <div id="wizardPhotoTitleArea" class="wizardPostCard" hidden>
-      <h3>保存タイトルを確認してください</h3>
-      <div id="wizardPhotoTitleCandidate" class="wizardTitleCandidate">タイトル未取得</div>
-      <label for="wizardPhotoCustomerName">顧客名</label>
-      <input id="wizardPhotoCustomerName" type="text" autocomplete="off" placeholder="顧客名">
-      <label for="wizardPhotoSiteName">現場名</label>
-      <input id="wizardPhotoSiteName" type="text" autocomplete="off" placeholder="現場名">
-      <button type="button" id="wizardConfirmPhotoTitleButton">このタイトルで保存</button>
-      <button type="button" id="wizardBackToPhotosButton" class="secondaryButton">写真選択画面へ戻る</button>
-    </div>
+     <div id="wizardPhotoTitleArea" class="wizardPostCard" hidden>
+       <h3>保存タイトルを確認してください</h3>
+       <div id="wizardPhotoTitleCandidate" class="wizardTitleCandidate">タイトル未取得</div>
+       <label for="wizardPhotoCustomerName">顧客名</label>
+       <input id="wizardPhotoCustomerName" type="text" autocomplete="off" placeholder="顧客名">
+       <label for="wizardPhotoSiteName">現場名</label>
+       <input id="wizardPhotoSiteName" type="text" autocomplete="off" placeholder="現場名">
+       <button type="button" id="wizardConfirmPhotoTitleButton">このタイトルで保存</button>
+       <button type="button" id="wizardBackToPhotosButton" class="secondaryButton">写真選択画面へ戻る</button>
+     </div>
 
-    <button
-      id="wizardPostSendCancelButton"
-      class="wizardCancelSendButton"
-      type="button"
-    >
-      直前送信を取消（残り約5分）
-    </button>
+     <button
+       id="wizardPostSendCancelButton"
+       class="wizardCancelSendButton"
+       type="button"
+     >
+       直前送信を取消（残り約5分）
+     </button>
 
-  </section>
+   </section>
 
   </main>
 
@@ -702,6 +702,7 @@
   <div id="inventoryRuntime" hidden></div>
   <script src="./scanner-try-harder-dev.js?v=49"></script>
   <script src="./app.js?v=66"></script>
+  <script src="./send-control.js?v=1"></script>
   <script src="./sales-stockin.js?v=96"></script>
 </body>
 </html>
