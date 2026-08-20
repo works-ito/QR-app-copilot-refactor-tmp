@@ -260,307 +260,50 @@
 
       <div
         id="locationButtons"
-        class="buttonGrid singleColumn"
-      ></div>
-    </section>
-
-    <section
-      id="userStep"
-      class="panel"
-      aria-labelledby="userQuestion"
-    >
-      <div class="stepHeader">
-        <div class="stepLabel">
-          STEP 3
-        </div>
-
-        <div
-          class="receptionStatus"
-          data-reception-status
-        >
-          通常受付
-        </div>
-      </div>
-
-      <h1
-        id="userQuestion"
-        class="question"
-      >
-        担当者を選んでください
-      </h1>
-
-      <p class="questionHint">
-        今回の作業者を選択します
-      </p>
-
-      <div
-        id="userButtons"
         class="buttonGrid"
       ></div>
     </section>
 
-    <section
-      id="recStep"
-      class="panel"
-      aria-labelledby="recQuestion"
-    >
+    <section id="userStep" class="panel">
       <div class="stepHeader">
-        <div class="stepLabel">
-          追加設定
-        </div>
-
-        <div
-          class="receptionStatus"
-          data-reception-status
-        >
-          通常受付
-        </div>
+        <div class="stepLabel">STEP 3</div>
+        <div class="receptionStatus" data-reception-status>通常受付</div>
       </div>
-
-      <h1
-        id="recQuestion"
-        class="question"
-      >
-        REC対象を選んでください
-      </h1>
-
-      <p class="questionHint">
-        対象を選び、必要な場合は実施日を入力します
-      </p>
-
-      <div
-        id="recTargetButtons"
-        class="buttonGrid"
-      ></div>
-
-      <div
-        id="wizardRecDateBox"
-        class="dateBox hidden"
-      >
-        <label
-          id="wizardRecDateLabel"
-          class="dateLabel"
-          for="wizardRecDate"
-        >
-          実施日
-        </label>
-
-        <input
-          id="wizardRecDate"
-          class="dateInput"
-          type="date"
-        >
-
-        <button
-          id="confirmRecButton"
-          class="nextButton"
-          type="button"
-        >
-          この内容で次へ
-        </button>
-      </div>
+      <h1 class="question">担当者を選んでください</h1>
+      <div id="userButtons" class="buttonGrid"></div>
     </section>
 
-    <section
-      id="completeStep"
-      class="panel"
-      aria-labelledby="completeTitle"
-    >
-      <div class="completeCard">
-        <h1
-          id="completeTitle"
-          class="completeTitle"
-        >
-          設定完了
-        </h1>
-
-        <dl
-          id="completeList"
-          class="completeList"
-        ></dl>
+    <section id="recStep" class="panel">
+      <div class="stepHeader">
+        <div class="stepLabel">STEP 4</div>
+        <div class="receptionStatus" data-reception-status>通常受付</div>
       </div>
+      <h1 class="question">REC対象を選んでください</h1>
+      <div id="recTargetButtons" class="buttonGrid"></div>
+      <label for="wizardRecDate">実施日</label>
+      <input id="wizardRecDate" type="date">
+    </section>
 
-      <div id="cameraPreview" class="scannerArea">
-        <div id="scannerStatus" class="scannerStatus">
-          カメラ起動準備中…
+    <section id="completeStep" class="panel">
+      <div id="cameraPreview" class="cameraPreview">
+        <div id="scannerFrame" class="scannerFrame">
+          <video id="scannerVideo" playsinline muted></video>
         </div>
-
-        <div id="scannerViewport" class="scannerViewport">
-          <video
-            id="scannerVideo"
-            class="scannerVideo"
-            playsinline
-            muted
-          ></video>
-
-          <div id="scannerFrame" class="scannerFrame"></div>
-        </div>
-
-        <div
-          id="scannerQuantityInput"
-          class="scannerQuantityInput"
-        >
-          <div
-            id="scannerQuantityName"
-            class="scannerQuantityName"
-          ></div>
-
-          <div
-            id="scannerQuantityInfo"
-            class="scannerQuantityInfo"
-          ></div>
-
-          <div
-            id="scannerQuantityCheckoutBox"
-            class="scannerQuantityCheckoutBox"
-            hidden
-          >
-            <label for="scannerQuantityCheckoutSelect">
-              取消対象の出庫履歴
-            </label>
-
-            <select id="scannerQuantityCheckoutSelect"></select>
-
-            <div
-              id="scannerQuantityCheckoutStatus"
-              class="scannerQuantityCheckoutStatus"
-            ></div>
-          </div>
-
+        <div id="scannerStatus" class="scannerStatus"></div>
+        <div id="scannerQuantityInput" class="scannerQuantityInput">
+          <div id="scannerQuantityInfo"></div>
           <div class="scannerQuantityField">
-            <input
-              id="scannerQuantityValue"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              step="1"
-              placeholder="数量"
-            >
-
-            <span
-              id="scannerQuantityUnit"
-              class="scannerQuantityUnit"
-            ></span>
+            <input id="scannerQuantityValue" type="number" inputmode="numeric" min="1" step="1">
+            <span id="scannerQuantityUnit"></span>
           </div>
-
-          <div class="scannerQuantityActions">
-            <button
-              id="cancelQuantityButton"
-              class="scannerQuantityCancelButton"
-              type="button"
-            >
-              取消
-            </button>
-
-            <button
-              id="addQuantityButton"
-              class="scannerQuantityAddButton"
-              type="button"
-            >
-              一覧へ追加
-            </button>
-          </div>
+          <select id="scannerQuantityCheckoutSelect"></select>
+          <button id="addQuantityButton" type="button">追加</button>
         </div>
-
-        <div id="scannerResult" class="scannerResult">
-          <div class="scannerResultTitle">
-            <span>読取済み</span>
-            <span id="scannerResultCount">0件</span>
-          </div>
-
-          <ol id="scannerResultList" class="scannerResultList"></ol>
-        </div>
-
-        <button
-          id="cancelLastScanButton"
-          class="scannerReadActionButton scannerUndoButton"
-          type="button"
-        >
-          最後の1件を取消
-        </button>
-
-        <button
-          id="resetAllScansButton"
-          class="scannerReadActionButton scannerResetAllButton"
-          type="button"
-        >
-          読取をすべてリセット
-        </button>
-
-        <div
-          id="wizardReturnMemoArea"
-          class="wizardReturnMemoArea"
-          hidden
-        >
-          <h3>返却案件の追記</h3>
-          <div class="irregularNoteEmphasis">
-            欠油・未入庫・破損状況は必ず入力
-          </div>
-          <p>今回の返却全体に追記する内容を選んでください。</p>
-
-          <label class="wizardReturnMemoOption">
-            <input
-              type="radio"
-              name="wizardReturnMemoType"
-              value="なし"
-            >
-            <span>追記なし</span>
-          </label>
-
-          <label class="wizardReturnMemoOption">
-            <input
-              type="radio"
-              name="wizardReturnMemoType"
-              value="あり"
-            >
-            <span>追記あり</span>
-          </label>
-
-          <textarea
-            id="wizardReturnMemoText"
-            placeholder="例：欠油○L／○○未入庫1／カバー破損"
-            hidden
-          ></textarea>
-
-          <button
-            id="wizardConfirmReturnMemoButton"
-            type="button"
-          >
-            この内容で返却を送信
-          </button>
-
-          <button
-            id="wizardCancelReturnMemoButton"
-            class="secondaryButton"
-            type="button"
-          >
-            戻る
-          </button>
-        </div>
-
-        <button
-          id="wizardSendBatchButton"
-          class="wizardSendButton"
-          type="button"
-        >
-          読取分をまとめて送信
-        </button>
-
-        <div
-          id="wizardSendStatus"
-          class="wizardSendStatus"
-          role="status"
-          aria-live="polite"
-        ></div>
-
-        <button
-          id="wizardCancelSendButton"
-          class="wizardCancelSendButton"
-          type="button"
-        >
-          直前送信を取消（5分間有効）
-        </button>
-
+        <div id="scannerResults"></div>
+        <div id="wizardReturnMemoArea" hidden></div>
+        <button id="wizardSendBatchButton" class="wizardSendButton" type="button">読取分をまとめて送信</button>
+        <div id="wizardSendStatus" class="wizardSendStatus" role="status" aria-live="polite"></div>
+        <button id="wizardCancelSendButton" class="wizardCancelSendButton" type="button">直前送信を取消（5分間有効）</button>
       </div>
 
       <div id="quantityInspectionArea" class="quantityInspectionArea" hidden>
@@ -569,34 +312,19 @@
           <p>返却された未検品品を、完成機と全損廃棄に振り分けます。</p>
           <p class="quantityInspectionWarning">QR読取は不要です。品目を選び、完成数と廃棄数を入力してください。</p>
         </div>
-
         <label for="quantityInspectionItemSelect">検品する品目</label>
         <select id="quantityInspectionItemSelect"></select>
         <button id="quantityInspectionAddButton" type="button">この品目を追加</button>
-
-        <div id="quantityInspectionEmpty" class="quantityInspectionEmpty">
-          この拠点に未検品の数量管理品はありません。
-        </div>
+        <div id="quantityInspectionEmpty" class="quantityInspectionEmpty">この拠点に未検品の数量管理品はありません。</div>
         <div id="quantityInspectionRows" class="quantityInspectionRows"></div>
-
-        <button id="quantityInspectionSendButton" class="wizardSendButton" type="button">
-          検品結果をまとめて送信
-        </button>
+        <button id="quantityInspectionSendButton" class="wizardSendButton" type="button">検品結果をまとめて送信</button>
         <div id="quantityInspectionStatus" class="wizardSendStatus" role="status" aria-live="polite"></div>
-        <button id="quantityInspectionCancelSendButton" class="wizardCancelSendButton" type="button">
-          直前送信を取消（5分間有効）
-        </button>
+        <button id="quantityInspectionCancelSendButton" class="wizardCancelSendButton" type="button">直前送信を取消（5分間有効）</button>
       </div>
 
-      <p
-        id="connectionNote"
-        class="connectionNote"
-      >
-        本番接続時は、この画面に到達した直後にカメラを自動起動します。
-      </p>
-
+      <p id="connectionNote" class="connectionNote">本番接続時は、この画面に到達した直後にカメラを自動起動します。</p>
     </section>
-  <!-- 送信後の写真・REC追記フロー -->
+
   <section id="wizardPostSendArea" class="wizardPostSendArea" hidden>
     <div id="wizardIrregularArea" class="wizardPostCard" hidden>
       <h3>イレギュラー受付内容</h3>
@@ -612,9 +340,7 @@
       </div>
       <div id="wizardIrregularSlipGuide" class="wizardPostSummary">1枚目に伝票写真を追加してください。</div>
       <label for="wizardIrregularNote">状況・理由</label>
-      <div class="irregularNoteEmphasis">
-        欠油・未入庫・破損状況などを必ず入力
-      </div>
+      <div class="irregularNoteEmphasis">欠油・未入庫・破損状況などを必ず入力</div>
       <textarea id="wizardIrregularNote" placeholder="QR破損・汚れ・管理番号が読めない・機械の特徴などを必ず入力"></textarea>
       <div id="wizardIrregularQuantityBox" hidden>
         <label for="wizardIrregularQuantity">数量</label>
@@ -659,49 +385,28 @@
       <button type="button" id="wizardBackToPhotosButton" class="secondaryButton">写真選択画面へ戻る</button>
     </div>
 
-    <button
-      id="wizardPostSendCancelButton"
-      class="wizardCancelSendButton"
-      type="button"
-    >
-      直前送信を取消（残り約5分）
-    </button>
-
+    <button id="wizardPostSendCancelButton" class="wizardCancelSendButton" type="button">直前送信を取消（残り約5分）</button>
   </section>
 
   </main>
 
   <div id="legacySelectionBridge" hidden>
     <select id="mode" aria-hidden="true"></select>
-
     <select id="location" aria-hidden="true">
-      <option value="本社">本社</option>
-      <option value="三郷">三郷</option>
-      <option value="MF">MF</option>
+      <option value="本社">本社</option><option value="三郷">三郷</option><option value="MF">MF</option>
     </select>
-
     <select id="user" aria-hidden="true">
-      <option value="奥">奥</option>
-      <option value="滝島">滝島</option>
-      <option value="上野">上野</option>
-      <option value="見﨑">見﨑</option>
-      <option value="田之岡">田之岡</option>
-      <option value="篠塚">篠塚</option>
-      <option value="その他">その他</option>
+      <option value="奥">奥</option><option value="滝島">滝島</option><option value="上野">上野</option><option value="見﨑">見﨑</option><option value="田之岡">田之岡</option><option value="篠塚">篠塚</option><option value="その他">その他</option>
     </select>
-
     <select id="recTarget" aria-hidden="true">
-      <option value="騒音計">騒音計</option>
-      <option value="振動計">振動計</option>
-      <option value="内部USB">内部USB</option>
+      <option value="騒音計">騒音計</option><option value="振動計">振動計</option><option value="内部USB">内部USB</option>
     </select>
-
     <input id="recDate" type="date" aria-hidden="true">
   </div>
 
   <div id="inventoryRuntime" hidden></div>
   <script src="./scanner-try-harder-dev.js?v=49"></script>
   <script src="./app.js?v=66"></script>
-  <script src="./sales-stockin.js?v=64"></script>
+  <script src="./sales-stockin.js?v=90"></script>
 </body>
 </html>
