@@ -1,4 +1,4 @@
-/* 販売品入庫受付 v89 bootstrap */
+/* 販売品入庫受付 v90 bootstrap */
 (function() {
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
@@ -57,6 +57,9 @@
     })
     .then(function() {
       return loadScript("./quantity-transfer-dev.js?v=75");
+    })
+    .then(function() {
+      return loadScript("./quantity-transfer-send-fix-dev.js?v=90");
     })
     .then(function() {
       return loadScript("./gemini-timing-dev.js?v=77");
