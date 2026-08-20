@@ -1,8 +1,10 @@
 /*
- * 手動更新UI v94
+ * 手動更新UI v95
  *
  * - 在庫データ表示の右側に［更新］ボタンを追加する。
- * - 通常時の件数表示は隠し、在庫データの最終更新時刻だけを分単位で表示する。
+ * - 通常時の件数表示は隠し、在庫キャッシュの updatedAt を
+ *   yyyy/MM/dd HH:mm 形式で表示する。
+ * - 表示中の「2分前」等の相対文字列から日時を推測しない。
  * - 更新ボタンはホーム画面追加版でも使えるよう、ページ全体を
  *   キャッシュバスター付きURLで再読込する。
  */
@@ -13,35 +15,58 @@
   const ROW_ID = "inventoryRefreshRowDev";
   const BUTTON_ID = "manualAppRefreshButtonDev";
 
-  function extractMinuteTimestamp(text) {
-    const value = String(text || "");
+  let renderingFromCache = false;
 
-    /* 2026/08/20 12:41:23 → 2026/08/20 12:41 */
-    const slashMatch = value.match(/(\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2})(?::\d{2})?/);
-    if (slashMatch) return slashMatch[1];
-
-    /* 2026-08-20 12:41:23 / 2026-08-20T12:41:23 にも対応 */
-    const hyphenMatch = value.match(/(\d{4}-\d{1,2}-\d{1,2})[T\s](\d{1,2}:\d{2})(?::\d{2})?/);
-    if (hyphenMatch) {
-      return hyphenMatch[1].replace(/-/g, "/") + " " + hyphenMatch[2];
-    }
-
-    return "";
+  function pad2(value) {
+    return String(value).padStart(2, "0");
   }
 
-  function normalizeStatusText(element) {
-    if (!element) return;
+  function formatAbsoluteMinute(value) {
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
 
-    const text = String(element.textContent || "").trim();
+    return (
+      date.getFullYear() + "/" +
+      pad2(date.getMonth() + 1) + "/" +
+      pad2(date.getDate()) + " " +
+      pad2(date.getHours()) + ":" +
+      pad2(date.getMinutes())
+    );
+  }
 
+  async function renderLatestCacheTimestamp(status) {
+    if (!status || renderingFromCache) return;
+    if (typeof restoreInventoryCache !== "function") return;
+
+    const text = String(status.textContent || "").trim();
+
+    /* 読込中・更新中・エラー表示はそのまま残す */
     if (
-      text.indexOf("在庫データ：更新完了") === 0 ||
-      text.indexOf("在庫データ：キャッシュ") === 0
+      text.indexOf("確認中") >= 0 ||
+      text.indexOf("更新中") >= 0 ||
+      text.indexOf("更新失敗") >= 0
     ) {
-      const updatedAt = extractMinuteTimestamp(text);
-      element.textContent = updatedAt
-        ? "在庫データ：" + updatedAt
-        : "在庫データ：更新済み";
+      return;
+    }
+
+    renderingFromCache = true;
+
+    try {
+      const cache = await restoreInventoryCache();
+      const updatedAt = cache && cache.updatedAt
+        ? formatAbsoluteMinute(cache.updatedAt)
+        : "";
+
+      if (updatedAt) {
+        const nextText = "在庫データ：" + updatedAt;
+        if (status.textContent !== nextText) {
+          status.textContent = nextText;
+        }
+      }
+    } catch (error) {
+      console.warn("在庫データ更新時刻の表示に失敗しました", error);
+    } finally {
+      renderingFromCache = false;
     }
   }
 
@@ -55,10 +80,6 @@
       status.textContent = "在庫データ：更新中…";
     }
 
-    /*
-     * ホーム画面追加版でも確実にHTMLから読み直せるよう、
-     * 現在URLのクエリを appRefresh のみに置き換えて再読込する。
-     */
     const url = new URL(window.location.href);
     url.search = "";
     url.searchParams.set("appRefresh", String(Date.now()));
@@ -109,10 +130,10 @@
       ".manualAppRefreshButtonDev:disabled{opacity:.65;}";
     document.head.appendChild(style);
 
-    normalizeStatusText(status);
+    void renderLatestCacheTimestamp(status);
 
     const observer = new MutationObserver(function() {
-      normalizeStatusText(status);
+      void renderLatestCacheTimestamp(status);
     });
     observer.observe(status, {
       childList:true,
@@ -120,7 +141,7 @@
       subtree:true
     });
 
-    console.info("開発版：手動更新UI v94 読込完了");
+    console.info("開発版：手動更新UI v95 読込完了");
   }
 
   if (document.readyState === "loading") {
