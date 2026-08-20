@@ -1,4 +1,4 @@
-/* QR在庫管理 Refactor integration bootstrap v2 */
+/* QR在庫管理 Refactor integration bootstrap v3 */
 (function() {
   "use strict";
 
@@ -18,9 +18,7 @@
     "https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.3/dist/iife/reader/index.js",
     "./scanner-zxing-wasm-dev.js?v=50",
 
-    "./sales-stockin-module.js?v=1",
-    "./sales-stockin-scan-enhancements.js?v=33",
-    "./sales-stockin-guards.js?v=33",
+    "./sales-stockin-module.js?v=2",
 
     "./compact-scanner-dev.js?v=53",
 
