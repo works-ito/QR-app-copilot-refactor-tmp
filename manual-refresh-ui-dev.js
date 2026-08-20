@@ -1,8 +1,8 @@
 /*
- * 手動更新UI v93
+ * 手動更新UI v94
  *
  * - 在庫データ表示の右側に［更新］ボタンを追加する。
- * - 通常時の件数表示を隠し、「在庫データ：最新」に簡略化する。
+ * - 通常時の件数表示は隠し、在庫データの最終更新時刻だけを分単位で表示する。
  * - 更新ボタンはホーム画面追加版でも使えるよう、ページ全体を
  *   キャッシュバスター付きURLで再読込する。
  */
@@ -13,6 +13,22 @@
   const ROW_ID = "inventoryRefreshRowDev";
   const BUTTON_ID = "manualAppRefreshButtonDev";
 
+  function extractMinuteTimestamp(text) {
+    const value = String(text || "");
+
+    /* 2026/08/20 12:41:23 → 2026/08/20 12:41 */
+    const slashMatch = value.match(/(\d{4}\/\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2})(?::\d{2})?/);
+    if (slashMatch) return slashMatch[1];
+
+    /* 2026-08-20 12:41:23 / 2026-08-20T12:41:23 にも対応 */
+    const hyphenMatch = value.match(/(\d{4}-\d{1,2}-\d{1,2})[T\s](\d{1,2}:\d{2})(?::\d{2})?/);
+    if (hyphenMatch) {
+      return hyphenMatch[1].replace(/-/g, "/") + " " + hyphenMatch[2];
+    }
+
+    return "";
+  }
+
   function normalizeStatusText(element) {
     if (!element) return;
 
@@ -22,7 +38,10 @@
       text.indexOf("在庫データ：更新完了") === 0 ||
       text.indexOf("在庫データ：キャッシュ") === 0
     ) {
-      element.textContent = "在庫データ：最新";
+      const updatedAt = extractMinuteTimestamp(text);
+      element.textContent = updatedAt
+        ? "在庫データ：" + updatedAt
+        : "在庫データ：更新済み";
     }
   }
 
@@ -101,7 +120,7 @@
       subtree:true
     });
 
-    console.info("開発版：手動更新UI v93 読込完了");
+    console.info("開発版：手動更新UI v94 読込完了");
   }
 
   if (document.readyState === "loading") {
