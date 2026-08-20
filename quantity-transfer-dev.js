@@ -1,4 +1,4 @@
-/* 数量管理品：拠点移動（受入先入力方式） v75 */
+/* 数量管理品：拠点移動（受入先入力方式） v96 */
 (function() {
   "use strict";
 
@@ -324,6 +324,32 @@
     };
     patched.__quantityTransferPatched = true;
     getWizardPreparedBatchRecords = patched;
+    window.getWizardPreparedBatchRecords = patched;
+  }
+
+  function patchBatchRecordBuilder() {
+    if (typeof buildBatchRecordData !== "function") return;
+    if (buildBatchRecordData.__quantityTransferPatched) return;
+
+    const original = buildBatchRecordData;
+    const patched = function(record) {
+      const data = original.apply(this, arguments);
+
+      if (
+        data &&
+        record &&
+        record.recordType === "quantity"
+      ) {
+        data.sourceLocation = normalize(record.sourceLocation);
+      }
+
+      return data;
+    };
+
+    patched.__quantityTransferPatched = true;
+    patched.__original = original;
+    buildBatchRecordData = patched;
+    window.buildBatchRecordData = patched;
   }
 
   function patchIrregularSender() {
@@ -397,6 +423,7 @@
     ensureNormalBox();
     ensureIrregularBox();
     patchPreparedRecords();
+    patchBatchRecordBuilder();
     patchIrregularSender();
     refreshNormalBox();
     refreshIrregularBox();
@@ -412,7 +439,7 @@
       if (reset) setTimeout(clearTransferSelections, 0);
     }, false);
 
-    console.info("開発版：数量管理品 拠点移動 v75 読込完了");
+    console.info("開発版：数量管理品 拠点移動 v96 読込完了");
   }
 
   if (document.readyState === "loading") {
