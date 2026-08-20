@@ -11,6 +11,7 @@
  * - 数量・出庫取消・拠点移動の付帯情報を保持する
  * - 返却追記の表示ホストを管理する
  * - 出庫成功後の写真遷移補完を同じ送信経路内で行う
+ * - 数量拠点移動は QuantityTransfer API を明示的に呼ぶ
  *
  * GASは変更しない。
  */
@@ -107,6 +108,25 @@
       attributes:true,
       attributeFilter:["hidden"]
     });
+  }
+
+  function prepareRecordsForSend(records) {
+    if (
+      window.QuantityTransfer &&
+      typeof window.QuantityTransfer.prepareIrregularRecords === "function"
+    ) {
+      return window.QuantityTransfer.prepareIrregularRecords(records);
+    }
+    return records;
+  }
+
+  function markQuantityTransferAccepted() {
+    if (
+      window.QuantityTransfer &&
+      typeof window.QuantityTransfer.markIrregularSendAccepted === "function"
+    ) {
+      window.QuantityTransfer.markIrregularSendAccepted();
+    }
   }
 
   function rebuildEntry(selected) {
@@ -295,11 +315,19 @@
       return false;
     }
 
+    let preparedRecords;
+    try {
+      preparedRecords = prepareRecordsForSend(records);
+    } catch (error) {
+      alert(error.message || String(error));
+      return false;
+    }
+
     const previousSendId = lastSuccessfulSend
       ? normalize(lastSuccessfulSend.sendId)
       : "";
 
-    const staged = await buildAndStageRecords(records);
+    const staged = await buildAndStageRecords(preparedRecords);
     if (!staged) return false;
 
     const isReturnMemoStage =
@@ -315,7 +343,8 @@
     const accepted = await sendWizardBatch();
 
     if (accepted) {
-      await ensureShipmentPhotoFlow(records, previousSendId);
+      markQuantityTransferAccepted();
+      await ensureShipmentPhotoFlow(preparedRecords, previousSendId);
     }
 
     return accepted;
