@@ -1,5 +1,5 @@
 /*
- * inventory.js v1
+ * inventory.js v2
  *
  * Phase 1-Bravo: Consolidate inventory management
  *
@@ -38,6 +38,7 @@
   let initialStatusCheckTimer = null;
   let initialStatusCheckCount = 0;
   let inventoryRefreshTimer = null;
+  let uiInstalled = false;
 
   /**
    * Get reference to app.js globals
@@ -190,6 +191,8 @@
   function loadAppInitialData(showLoading) {
     const appFn = getAppFunction("loadAppInitialData");
     if (!appFn) {
+      console.error("inventory.js: app.js loadAppInitialData not found");
+      setInventoryDataStatusError("app.js loadAppInitialData not found");
       return Promise.reject(new Error("app.js loadAppInitialData not found"));
     }
 
@@ -331,8 +334,12 @@
 
   /**
    * installManualRefreshUi() - Add manual refresh button
+   * GUARD: Only install once to prevent duplicate buttons
    */
   function installManualRefreshUi() {
+    // Guard against multiple installations
+    if (uiInstalled === true) return;
+    
     const status = document.getElementById(STATUS_ID);
     if (!status) {
       setTimeout(installManualRefreshUi, 300);
@@ -342,7 +349,11 @@
     const ROW_ID = "inventoryRefreshRow";
     const BUTTON_ID = "manualAppRefreshButton";
 
-    if (document.getElementById(ROW_ID)) return;
+    // Check if already exists
+    if (document.getElementById(ROW_ID)) {
+      uiInstalled = true;
+      return;
+    }
 
     const row = document.createElement("div");
     row.id = ROW_ID;
@@ -382,6 +393,8 @@
       ".manualAppRefreshButton:active{transform:translateY(1px);background:#f4f6f8;}" +
       ".manualAppRefreshButton:disabled{opacity:.65;}";
     document.head.appendChild(style);
+    
+    uiInstalled = true;
   }
 
   /**
@@ -439,8 +452,16 @@
 
   /**
    * install() - Initialize all inventory management
+   * GUARD: Only run once
    */
   function install() {
+    // Guard: prevent double-initialization
+    if (window.InventoryControlInstalled === true) {
+      console.warn("inventory.js: Already installed, skipping re-initialization");
+      return;
+    }
+    window.InventoryControlInstalled = true;
+
     installManualRefreshUi();
     installControlledTimer();
     installVisibilityControl();
@@ -462,7 +483,7 @@
       loadAppInitialData: loadAppInitialData
     };
 
-    console.info("inventory.js v1 loaded. Unified inventory management.");
+    console.info("inventory.js v2 loaded. Unified inventory management.");
   }
 
   if (document.readyState === "loading") {
